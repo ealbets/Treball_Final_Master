@@ -1,5 +1,5 @@
 # main.R
-setwd("C:/Users/ernea/OneDrive/Escritorio/UOC - Data Science/SEMESTRE 5 TFM/src/")
+setwd("C:/Users/ernea/OneDrive/Escritorio/UOC - Data Science/SEMESTRE 5 TFM/src/Treball_Final_Master/")
 
 ##-- CARREGA, PROCESSAMENT, SELECCIÓ, TRANSFORMACIÓ, MUNTATGE I GENERACIÓ DEL CONJUNT DE DADES INICIAL--##
 # Pas 1: Funcions d'ús general
