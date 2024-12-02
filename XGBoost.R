@@ -5,7 +5,6 @@ if (!require("reshape2")) install.packages("reshape2")
 
 library(xgboost)
 library(dplyr)
-library(ggplot2)
 library(progress)
 library(reshape2)
 
@@ -135,7 +134,7 @@ xgboost_importance_by_grade <- function(X, histological_grade, best_params) {
   
 }
 
-# Establim el nombre de mostres que es volen mostrar en el rànking dels millors i els pitjors
+# Establim el nombre de mostres que es volen mostrar en el rànking dels millors
 top_num = 15
 
 # A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
@@ -160,101 +159,51 @@ cat("Top ", top_num,  ": GRAU HISTOLÒGIC 3 --> Gens/s més importants:\n")
 print(head(importance_xgboost_grade_3, top_num))
 
 
-# Visualització de resultants emprant gràfiques verticals amb 'ggplot'
+# Visualització de resultats emprant gràfiques verticals amb 'ggplot'
 feature_importance1 <- importance_xgboost_grade_1 %>% arrange(desc(Gain))
 feature_importance2 <- importance_xgboost_grade_2 %>% arrange(desc(Gain))
 feature_importance3 <- importance_xgboost_grade_3 %>% arrange(desc(Gain))
 
-plot <- ggplot(feature_importance1[1:top_num,], aes(x = reorder(Feature, Gain), y = Gain)) +
-  geom_bar(stat = "identity", fill = "blue") +
-  coord_flip() +
-  labs(title = "XGBoost - Top 15 Importància Genètica (Grau Histològic 1) segons Gain", x = "Gens", y = "Gain") +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
+# Crida a la funció que ploteja els diagrames de barres hortizontals per a les característiques importants del dataset
+xlabel <- "Gens"
+ylabel <- "Gain"
+title1 <- paste0("XGBoost - ", top_num, " Importància Genètica (Grau Histològic 1) segons Gain")
+color1 <- "blue"
+plot1 <- create_horitzontal_barchart_plot(feature_importance1, "Feature", "Gain", color1, title1, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_1_XGBoost.png"), plot = plot, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_1_XGBoost.png"), plot = plot1, width = 15, height = 10)
 
-
-plot <- ggplot(feature_importance2[1:top_num,], aes(x = reorder(Feature, Gain), y = Gain)) +
-  geom_bar(stat = "identity", fill = "red") +
-  coord_flip() +
-  labs(title = "XGBoost - Top 15 Importància Genètica (Grau Histològic 2) segons Gain", x = "Gens", y = "Gain") +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
-
+title2 <- paste0("XGBoost - ", top_num, " Importància Genètica (Grau Histològic 2) segons Gain")
+color2 <- "green"
+plot2 <- create_horitzontal_barchart_plot(feature_importance2, "Feature", "Gain", color2, title2, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_2_XGBoost.png"), plot = plot, width = 15, height = 10)
-
-
-plot <- ggplot(feature_importance3[1:top_num,], aes(x = reorder(Feature, Gain), y = Gain)) +
-  geom_bar(stat = "identity", fill = "green") +
-  coord_flip() +
-  labs(title = "XGBoost - Top 15 Importància Genètica (Grau Histològic 3) segons Gain", x = "Gens", y = "Gain") +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
-
+ggsave(filename = paste0(path_images,"Grau_Histologic_2_XGBoost.png"), plot = plot2, width = 15, height = 10)
+  
+title3 <- paste0("XGBoost - ", top_num, " Importància Genètica (Grau Histològic 3) segons Gain")
+color3 <- "red"
+plot3 <- create_horitzontal_barchart_plot(feature_importance3, "Feature", "Gain", color3, title3, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_3_XGBoost.png"), plot = plot, width = 10, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_3_XGBoost.png"), plot = plot3, width = 15, height = 10)
 
 
-# Visualització de resultants emprant diagrames de punts amb 'ggplot'
-plot <- ggplot(feature_importance1[1:top_num,], aes(x = Gain, y = reorder(Feature, Gain))) +
-  geom_point(size = 3, color = "blue") +
-  labs(title = "XGBoost - Top 15 Importància Genètica (Grau Histològic 1) segons Gain", x = "Importància (Gain)", y = "Gens")
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
+# Crida a la funció que ploteja els diagrames de punts per a les característiques importants del dataset
+# Visualització de resultats emprant diagrames de punts amb 'ggplot'
+xlabel <- "Importància segons Gain"
+ylabel <- "Gens"
+title1 <- paste0("XGBoost - ", top_num, " Importància Genètica (Grau Histològic 1) segons Gain")
+color1 <- "blue"
+plot1 <- create_point_chart_plot(feature_importance1, "Feature", "Gain", color1, title1, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_1_XGBoost_punts.png"), plot = plot, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_1_XGBoost_Points.png"), plot = plot1, width = 15, height = 10)
 
-plot <- ggplot(feature_importance2[1:top_num,], aes(x = Gain, y = reorder(Feature, Gain))) +
-  geom_point(size = 3, color = "red") +
-  labs(title = "XGBoost - Top 15 Importància Genètica (Grau Histològic 2) segons Gain", x = "Importància (Gain)", y = "Gens")
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
+title2 <- paste0("XGBoost - ", top_num, " Importància Genètica (Grau Histològic 2) segons Gain")
+color2 <- "green"
+plot2 <- create_point_chart_plot(feature_importance2, "Feature", "Gain", color2, title2, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_2_XGBoost_punts.png"), plot = plot, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_2_XGBoost_Points.png"), plot = plot2, width = 15, height = 10)
 
-
-plot <- ggplot(feature_importance3[1:top_num,], aes(x = Gain, y = reorder(Feature, Gain))) +
-  geom_point(size = 3, color = "green") +
-  labs(title = "XGBoost - Top 15 Importància Genètica (Grau Histològic 3) segons Gain", x = "Importància (Gain)", y = "Gens")
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
+title3 <- paste0("XGBoost - ", top_num, " Importància Genètica (Grau Histològic 3) segons Gain")
+color3 <- "red"
+plot3 <- create_point_chart_plot(feature_importance3, "Feature", "Gain", color3, title3, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_3_XGBoost_punts.png"), plot = plot, width = 10, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_3_XGBoost_Points.png"), plot = plot3, width = 15, height = 10)

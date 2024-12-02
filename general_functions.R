@@ -1,5 +1,7 @@
 ## FUNCIONS GENÈRIQUES
 
+library(ggplot2)
+
 ## Funció de càrrega, processament i unió amb les dades gèniques de la plataforma
 # 1. Carrega i llegeix el contingut de la taula de la ruta especificada
 # 2. Captura i reanomena la variable que ens interessa, l'odentificador i el símbol del gen: GENE_SYMBOL
@@ -119,4 +121,103 @@ normalize_matrix <- function(matrix_list) {
   
   # Retornar la matriu normalitzada
   return(matrix_norm)
+}
+
+
+# Funció genèrica que crea un diagrama de barres horitzonals a partir de la llibreria ggplot2 per visualitzar
+# el rànking de resultats de les importàncies dels gens en cada una de les tècniques de machine-learning diferents
+# aplicades i per a un determinat grau histològic específic
+# Paràmetres:
+# - data: dades que contenen les importàncies de cada característica (gens) 
+# - X: columna de dades en eix X
+# - y: columna de dades en eix Y
+# - color: color de les barres horitzontals
+# - title: títol de la gràfica
+# - top_num: nombre d'elements (gens) a visualitzar en les y's
+# - xlablel: etiqueta en l'eix 'X'
+# - ylabel: etiqueta en l'eix 'Y'
+create_horitzontal_barchart_plot <- function(data, X, Y, color, title, top_num, xlabel, ylabel) {
+  
+  plot <- ggplot(data[1:top_num,], aes(x = reorder(.data[[X]], .data[[Y]]), y = .data[[Y]])) +
+    geom_bar(stat = "identity", fill = color) +
+    coord_flip() +
+    labs(title = title, x = xlabel, y = ylabel) +
+    theme_minimal() +
+    theme(
+      panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
+      plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
+      panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
+      panel.grid.minor = element_blank()                                # Línies de quadrícula menors
+    )
+  
+  return(plot)
+}
+
+
+# Funció genèrica que crea un diagrama de punts a partir de la llibreria ggplot2 per visualitzar
+# el rànking de resultats de les importàncies dels gens en cada una de les tècniques de machine-learning diferents
+# aplicades i per a un determinat grau histològic específic
+# Paràmetres:
+# - data: dades que contenen les importàncies de cada característica (gens) 
+# - X: columna de dades en eix X
+# - y: columna de dades en eix Y
+# - color: color de les barres horitzontals
+# - title: títol de la gràfica
+# - top_num: nombre d'elements (gens) a visualitzar en les y's
+# - xlablel: etiqueta en l'eix 'X'
+# - ylabel: etiqueta en l'eix 'Y'
+create_point_chart_plot <- function(data, X, Y, color, title, top_num, xlabel, ylabel) {
+  
+  plot <- ggplot(data[1:top_num,], aes(x = .data[[Y]], y = reorder(.data[[X]], .data[[Y]]))) +
+    geom_point(size = 3, color = color) +
+    labs(title = title, x = xlabel, y = ylabel)
+  theme_minimal() +
+    theme(
+      panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
+      plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
+      panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
+      panel.grid.minor = element_blank()                                # Línies de quadrícula menors
+    )
+  
+  return(plot)
+}
+
+
+# Funció genèrica que crea un diagrama de barres horitzonals amb valors positius i/o negatius a partir de la llibreria ggplot2 
+# per visualitzar el rànking de resultats de les importàncies dels gens en cada una de les tècniques de machine-learning 
+# basades en la regularització i a partir d'un grau histològic específic
+# Paràmetres:
+# - data: dades que contenen les importàncies de cada característica (gens) 
+# - X: columna de dades en eix X
+# - y: columna de dades en eix Y
+# - z: distinció del signe
+# - color1: color de les barres horitzontals amb valors positius
+# - color2: color de les barres horitzontals amb valors negatius
+# - title: títol de la gràfica
+# - subtitle: subtitol
+# - top_num: nombre d'elements (gens) a visualitzar en les y's
+# - xlablel: etiqueta en l'eix 'X'
+# - ylabel: etiqueta en l'eix 'Y'
+create_horitzontal_barchart_with_sign_plot <- function(data, X, Y, z, color1, color2, title, subtitle, top_num, xlabel, ylabel) {
+  
+  plot <- ggplot(data[1:top_num,], aes(x = reorder(.data[[X]], .data[[Y]]), y = .data[[Y]], fill= .data[[z]])) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    scale_fill_manual(values = c("Positiu (Risc)" = color1, "Negatiu (Protecció)" = color2)) +
+    labs(
+      title = title,
+      subtitle = subtitle,
+      x = xlabel,
+      y = ylabel
+    ) +
+    theme_minimal() +
+    theme(
+      panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
+      plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
+      panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
+      panel.grid.minor = element_blank(),                               # Línies de quadrícula menors
+      legend.position = "top"                                           # Llegenda a la part superior
+    )
+  
+  return(plot)
 }

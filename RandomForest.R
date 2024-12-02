@@ -100,8 +100,8 @@ colnames(X) <- column_map[colnames(X)]
 
 # Graella de possibles hiperparàmetres per a trobar-ne els valors òptims
 param_grid_rf <- expand.grid(
-  mtry = c(100, 250, 500),     # Número de característiques considerades
-  ntree = c(500, 700, 1000),   # Número d'arbres
+  mtry = c(100, 250, 500, 750, 1000),     # Número de característiques considerades
+  ntree = c(500, 700, 1000, 2500, 3000),   # Número d'arbres
   nodesize = c(1, 5, 10)      # Mínim tamany de nodes
 )
 
@@ -143,8 +143,8 @@ rf_importance_by_grade <- function(X,histological_grade, best_params) {
   return(importance)
 }
 
-# Establim el nombre de mostres que es volen mostrar en el rànking dels millors i els pitjors
-top_num = 15
+# Establim el nombre de mostres que es volen mostrar en el rànking dels millors
+top_num = 10
 
 # A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
 # per a cada classe (grau histològic: 1, 2 i 3)
@@ -174,114 +174,46 @@ cat("Top ", top_num,  ": GRAU HISTOLÒGIC 3 --> Gens/s més importants:\n")
 print(head(importance_rf_grade_3[, c("Feature", "MeanDecreaseGini", "MeanDecreaseAccuracy")], top_num))
 
 
-# Visualització de resultants emprant gràfiques verticals amb 'ggplot'
-plot <- ggplot(importance_rf_grade_1[1:top_num, ], aes(x = reorder(Feature, MeanDecreaseGini), y = MeanDecreaseGini)) +
-  geom_bar(stat = "identity", fill = "blue") +
-  coord_flip() +
-  labs(title = paste("Random Forest - Top 15 Importància Genètica en Grau Histològic 1 segons Mean Decrease Gini"),
-       x = "Gens", y = "Mean Decrease Gini") +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
 
+# Crida a la funció que ploteja els diagrames de barres hortizontals per a les característiques importants del dataset
+xlabel <- "Gens"
+ylabel <- "Mean Decrease Gini"
+title1 <- paste0("RANDOM FOREST - ", top_num, " Importància Genètica (Grau Histològic 1) segons Mean Decrease Gini")
+color1 <- "blue"
+plot1 <- create_horitzontal_barchart_plot(importance_rf_grade_1, "Feature", "MeanDecreaseGini", color1, title1, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_1_RandomForest.png"), plot = plot, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_1_RandomForest.png"), plot = plot1, width = 15, height = 10)
 
-
-plot <- ggplot(importance_rf_grade_2[1:top_num, ], aes(x = reorder(Feature, MeanDecreaseGini), y = MeanDecreaseGini)) +
-  geom_bar(stat = "identity", fill = "red") +
-  coord_flip() +
-  labs(title = paste("Random Forest - Top 15 Importància Genètica en Grau Histològic 2 segons Mean Decrease Gini"),
-       x = "Gens", y = "Mean Decrease Gini") +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
+title2 <- paste0("RANDOM FOREST - ", top_num, " Importància Genètica (Grau Histològic 2) segons Mean Decrease Gini")
+color2 <- "green"
+plot2 <- create_horitzontal_barchart_plot(importance_rf_grade_2, "Feature", "MeanDecreaseGini", color2, title2, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_2_RandomForest.png"), plot = plot, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_2_RandomForest.png"), plot = plot2, width = 15, height = 10)
 
-
-plot <- ggplot(importance_rf_grade_3[1:top_num, ], aes(x = reorder(Feature, MeanDecreaseGini), y = MeanDecreaseGini)) +
-  geom_bar(stat = "identity", fill = "green") +
-  coord_flip() +
-  labs(title = paste("Random Forest - Top 15 Importància Genètica en Grau Histològic 3 segons Mean Decrease Gini"),
-       x = "Gens", y = "Mean Decrease Gini") +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
+title3 <- paste0("RANDOM FOREST - ", top_num, " Importància Genètica (Grau Histològic 3) segons Mean Decrease Gini")
+color3 <- "red"
+plot3 <- create_horitzontal_barchart_plot(importance_rf_grade_3, "Feature", "MeanDecreaseGini", color3, title3, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_3_RandomForest.png"), plot = plot, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_3_RandomForest.png"), plot = plot3, width = 15, height = 10)
 
 
-# Visualització de resultants emprant diagrames de punts amb 'ggplot'
-plot <- ggplot(importance_rf_grade_1[1:top_num, ], aes(x = reorder(Feature, MeanDecreaseGini), y = MeanDecreaseGini)) +
-  geom_point(size = 3, color = "blue") + 
-  coord_flip() +
-  labs(
-    title = "RANDOM FOREST: Importància dels gens en Grau Histològic 1 segons MeanDecreaseGini",
-    x = "Gens",
-    y = "MeanDecreaseGini"
-  ) + 
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
+# Visualització de resultats emprant diagrames de punts amb 'ggplot'
+xlabel <- "Importància segons MeanDecreaseGini"
+ylabel <- "Gens"
+title1 <- paste0("RANDOM FOREST - ", top_num, " Importància Genètica (Grau Histològic 1) segons MeanDecreaseGini")
+color1 <- "blue"
+plot1 <- create_point_chart_plot(importance_rf_grade_1, "Feature", "MeanDecreaseGini", color1, title1, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_1_RandomForest_punts.png"), plot = plot, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_1_RandomForest_Points.png"), plot = plot1, width = 15, height = 10)
 
-
-plot <- ggplot(importance_rf_grade_2[1:top_num, ], aes(x = reorder(Feature, MeanDecreaseGini), y = MeanDecreaseGini)) +
-  geom_point(size = 3, color = "red") + 
-  coord_flip() +
-  labs(
-    title = "RANDOM FOREST: Importància dels gens en Grau Histològic 2 segons MeanDecreaseGini",
-    x = "Gens",
-    y = "MeanDecreaseGini"
-  ) +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
+title2 <- paste0("RANDOM FOREST - ", top_num, " Importància Genètica (Grau Histològic 2) segons MeanDecreaseGini")
+color2 <- "green"
+plot2 <- create_point_chart_plot(importance_rf_grade_2, "Feature", "MeanDecreaseGini", color2, title2, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_2_RandomForest_punts.png"), plot = plot, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_2_RandomForest_Points.png"), plot = plot2, width = 15, height = 10)
 
-
-plot <- ggplot(importance_rf_grade_1[1:top_num, ], aes(x = reorder(Feature, MeanDecreaseGini), y = MeanDecreaseGini)) +
-  geom_point(size = 3, color = "green") +
-  coord_flip() +
-  labs(
-    title = "RANDOM FOREST: Importància dels gens en Grau HIstològic 3 segons MeanDecreaseGini",
-    x = "Gens",
-    y = "MeanDecreaseGini"
-  ) +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank()                                # Línies de quadrícula menors
-  )
-
+title3 <- paste0("RANDOM FOREST - ", top_num, " Importància Genètica (Grau Histològic 3) segons MeanDecreaseGini")
+color3 <- "red"
+plot3 <- create_point_chart_plot(importance_rf_grade_3, "Feature", "MeanDecreaseGini", color3, title3, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_3_RandomForest_punts.png"), plot = plot, width = 10, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_3_RandomForest_Points.png"), plot = plot3, width = 15, height = 10)

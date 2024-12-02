@@ -1,7 +1,7 @@
 #### FILE 1 PROCESSMENT: Processat i captura dels atributs identificadors dels pacients, el grau histològic i informació addicional ####
 
 ### LOAD DATA ###
-# Path to file
+# Ruta al fitxer de dades 1
 file_path_1 <- "datos/data_part_1.txt"
 
 # Read lines

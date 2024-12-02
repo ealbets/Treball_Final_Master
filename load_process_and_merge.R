@@ -6,9 +6,9 @@ library(dplyr)
 # Empresa de la plataforma: Affymetrix, ja conté un camp 'GENE_SYMBOL'
 
 # Ruta a la taula de la plataforma
-file_to_platform_affymetrix <- "datos/platform_microarrays/"
+file_to_platform_affymetrix <- "data/platform_microarrays/"
 file_platofrm_name <- "GPL570-55999.txt"
-ruta_destino <- "datos/gene_expressions_matrix/"
+ruta_destino <- "data/gene_expressions_matrix/"
 
 print("PROCESSAT PAS 1: Càrrega, processat i unió de les dades de la matriu d'expressió genètica obtinguda del conjunt de dades amb la informació proporcionada per la taula de la plataforma")
 
@@ -51,7 +51,7 @@ dimensions_2 <- dim(matriu_expressio_genetica_2_final_proc)
 # Calcular el número de mostres excloent la primera columna
 num_mostres_2 <- dimensions_2[2] - 1  # Resta 1 per a excloure la columna GENE_SYMBOL
 # Mostrar el nombre de files y columnas
-cat("La matriu d'expressió genètica processada 1 té ", dimensions_2[1], "sondes genètiques i", num_mostres_2, "mostres\n")
+cat("La matriu d'expressió genètica processada 2 té ", dimensions_2[1], "sondes genètiques i", num_mostres_2, "mostres\n")
 
 
 print("PROCESSAT PAS 3: Unió de les matrius resultants en una de sola")

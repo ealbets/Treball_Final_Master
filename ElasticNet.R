@@ -82,7 +82,7 @@ X <- as.matrix(dataset[, 7:(ncol(dataset) - 3)])
 # Definim les possibilitats d'hiperparàmetres per a cercar els òptims
 # seqüència de valors alpha i valors lambda
 alpha <- seq(0.1, 1, by = 0.15)
-lambdes <- c(0.01, 0.05, 0.1, 0.5, 1, 10)
+lambdes <- 10^seq(-4, 2, length.out = 50)  # 50 valors entre 0.0001 i 100
 
 
 # Cridar a la funció per a cada un dels graus histològics
@@ -173,157 +173,37 @@ importance_elasticnet_grade_1 <- importance_elasticnet_grade_1 %>%
 # Gràfic amb diferenciació de colors per signe del coeficient.
 # blau pels coeficients positius (sentit negatiu, ja que denota risc de patiment)
 # vermell pels coeficients negatius (sentit positiu, ja que denota protecció)
-plot <- ggplot(importance_elasticnet_grade_1[1:top_num,], 
-               aes(x = reorder(Feature, Coef), y = Coef, fill = Signe)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  scale_fill_manual(values = c("Positiu (Risc)" = "blue", "Negatiu (Protecció)" = "red")) +
-  labs(
-    title = paste0("Elastic Net - Top ", top_num, " Importància Genètica (Grau Histològic 1)"),
-    subtitle = "Coeficients positius (risc) i negatius (protecció)",
-    x = "Gens",
-    y = "Coeficient"
-  ) +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank(),                               # Línies de quadrícula menors
-    legend.position = "top"                                           # Llegenda a la part superior
-  )
 
+#definició variables
+xlabel <- "Gens"
+ylabel <- "Coeficient"
+color1 <- "blue"
+color2 <- "red"
+title1 <- paste0("Elastic Net - Top ", top_num, " Importància Genètica (Grau Histològic 1)")
+subtitle <- "Coeficients positius (risc) i negatius (protecció)"
+
+plot1 <- create_horitzontal_barchart_with_sign_plot(importance_elasticnet_grade_1, "Feature", "Coef", "Signe", color1, color2, title1, subtitle, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_1_ElasticNet.png"), 
-       plot = plot, width = 15, height = 10)
-
+ggsave(filename = paste0(path_images,"Grau_Histologic_1_ElasticNet.png"), plot = plot1, width = 15, height = 10)
 
 
 # Afegim una columna per categoritzar els coeficients com a positius o negatius
 importance_elasticnet_grade_2 <- importance_elasticnet_grade_2 %>%
   mutate(Signe = ifelse(Coef > 0, "Positiu (Risc)", "Negatiu (Protecció)"))
 
+title2 <- paste0("Elastic Net - Top ", top_num, " Importància Genètica (Grau Histològic 2)")
 
-plot <- ggplot(importance_elasticnet_grade_2[1:top_num,], 
-               aes(x = reorder(Feature, Coef), y = Coef, fill = Signe)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  scale_fill_manual(values = c("Positiu (Risc)" = "blue", "Negatiu (Protecció)" = "red")) +
-  labs(
-    title = paste0("Elastic Net - Top ", top_num, " Importància Genètica (Grau Histològic 2)"),
-    subtitle = "Coeficients positius (risc) i negatius (protecció)",
-    x = "Gens",
-    y = "Coeficient"
-  ) +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank(),                               # Línies de quadrícula menors
-    legend.position = "top"                                           # Llegenda a la part superior
-  )
-
-
+plot2 <- create_horitzontal_barchart_with_sign_plot(importance_elasticnet_grade_2, "Feature", "Coef", "Signe", color1, color2, title2, subtitle, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_2_ElasticNet.png"), plot = plot, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_2_ElasticNet.png"), plot = plot2, width = 15, height = 10)
 
 
 # Afegim una columna per categoritzar els coeficients com a positius o negatius
 importance_elasticnet_grade_3 <- importance_elasticnet_grade_3 %>%
   mutate(Signe = ifelse(Coef > 0, "Positiu (Risc)", "Negatiu (Protecció)"))
 
-plot <- ggplot(importance_elasticnet_grade_3[1:top_num,], 
-               aes(x = reorder(Feature, Coef), y = Coef, fill = Signe)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  scale_fill_manual(values = c("Positiu (Risc)" = "blue", "Negatiu (Protecció)" = "red")) +
-  labs(
-    title = paste0("Elastic Net - Top ", top_num, " Importància Genètica (Grau Histològic 3)"),
-    subtitle = "Coeficients positius (risc) i negatius (protecció)",
-    x = "Gens",
-    y = "Coeficient"
-  ) +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank(),                               # Línies de quadrícula menors
-    legend.position = "top"                                           # Llegenda a la part superior
-  )
+title3 <- paste0("Elastic Net - Top ", top_num, " Importància Genètica (Grau Histològic 3)")
 
-
+plot3 <- create_horitzontal_barchart_with_sign_plot(importance_elasticnet_grade_3, "Feature", "Coef", "Signe", color1, color2, title3, subtitle, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_3_ElasticNet.png"), plot = plot, width = 10, height = 10)
-
-
-# Visualització de resultants emprant diagrames de punts amb 'ggplot'
-plot <- ggplot(importance_elasticnet_grade_1[1:top_num,], 
-               aes(x = abs(Coef), y = reorder(Feature, abs(Coef)), color = Signe)) +
-  geom_point(size = 3) +
-  scale_color_manual(values = c("Positiu (Risc)" = "blue", "Negatiu (Protecció)" = "red")) +
-  labs(
-    title = paste0("Elastic Net - Top ", top_num, " Importància Genètica (Grau Histològic 1)"),
-    subtitle = "Coeficients positius (risc) i negatius (protecció)",
-    x = "Importància (|Coef|)",
-    y = "Gens"
-  ) +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank(),                               # Línies de quadrícula menors
-    legend.position = "top"                                           # Llegenda a la part superior
-  )
-
-# Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_1_ElasticNet_punts.png"), plot = plot, width = 15, height = 10)
-
-
-plot <- ggplot(importance_elasticnet_grade_2[1:top_num,], 
-               aes(x = abs(Coef), y = reorder(Feature, abs(Coef)), color = Signe)) +
-  geom_point(size = 3) +
-  scale_color_manual(values = c("Positiu (Risc)" = "blue", "Negatiu (Protecció)" = "red")) +
-  labs(
-    title = paste0("Elastic Net - Top ", top_num, " Importància Genètica (Grau Histològic 2)"),
-    subtitle = "Coeficients positius (risc) i negatius (protecció)",
-    x = "Importància (|Coef|)",
-    y = "Gens"
-  ) +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank(),                               # Línies de quadrícula menors
-    legend.position = "top"                                           # Llegenda a la part superior
-  )
-
-
-# Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_2_ElasticNet_punts.png"), plot = plot, width = 15, height = 10)
-
-
-plot <- ggplot(importance_elasticnet_grade_3[1:top_num,], 
-               aes(x = abs(Coef), y = reorder(Feature, abs(Coef)), color = Signe)) +
-  geom_point(size = 3) +
-  scale_color_manual(values = c("Positiu (Risc)" = "blue", "Negatiu (Protecció)" = "red")) +
-  labs(
-    title = paste0("Elastic Net - Top ", top_num, " Importància Genètica (Grau Histològic 3)"),
-    subtitle = "Coeficients positius (risc) i negatius (protecció)",
-    x = "Importància (|Coef|)",
-    y = "Gens"
-  ) +
-  theme_minimal() +
-  theme(
-    panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
-    plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
-    panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
-    panel.grid.minor = element_blank(),                               # Línies de quadrícula menors
-    legend.position = "top"                                           # Llegenda a la part superior
-  )
-
-# Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_3_ElasticNet_punts.png"), plot = plot, width = 10, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_3_ElasticNet.png"), plot = plot3, width = 15, height = 10)
