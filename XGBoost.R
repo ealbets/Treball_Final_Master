@@ -25,27 +25,36 @@ dataset$is_grade_3 <- ifelse(dataset$HISTOLOGICAL_GRADE == 3, 1, 0)
 
 # Funció genèrica per a trobar els hiperpàrmatres òptims (aquells que maximitzen ) emprant la validació creuada
 # i la graella d'opcions de param_grid
+# Paràmetres:
+# - X :conjunt de variables independents)
+# - y :variable objectiu binària: is_grade_n)
+# - param_grid: matriu inicial de possibles hiperparàmetres amb possibles valors
 hyperparams_xgboost_search <- function(X, y, param_grid) {
   cat("Cerca d'hiperparàmetres òptims: \n")
   
   # Inicialitzar les variables per guardar el millor AUC i els seus hiperparàmetres
   best_auc <- -Inf
   best_params <- NULL
+  best_nrounds <- NULL
   
   # Barra de progrés per a tenir una noció del temps
   pb <- progress_bar$new(
-    format = "Avaluant hiperparàmetres :current/:total (:percent) Temps restant: \n",
+    format = "Avaluant hiperparàmetres :current/:total (:percent) \n",
     total = nrow(param_grid),
     clear = FALSE,
     width = 60
   )
+  
+  # Número màxim de rondes (es fixa alt) i early stopping
+  max_nrounds <- 1000
+  early_stopping_rounds <- 10
   
   # Bucle sobre la graella
   for (i in 1:nrow(param_grid)) {
     
     # Actualitzar la barra de progrés
     pb$tick()
-      
+    
     params <- list(
       objective = "binary:logistic",
       max_depth = param_grid$max_depth[i],
@@ -58,17 +67,17 @@ hyperparams_xgboost_search <- function(X, y, param_grid) {
     cat("\n Avaluant hiperparàmetres en XGBoost ", y ," : ", 
         paste(names(params), unlist(params), sep = "=", collapse = ", "), "\n")
     
-  
-    # Validació creuada emprant .cv 
+    # Validació creuada emprant xgb.cv amb early stopping
     cv_results <- xgb.cv(
       params = params,
       data = xgb.DMatrix(X, label = dataset[[y]]),
-      nrounds = 100, # iteracions
+      nrounds = max_nrounds,
       nfold = 3,
       metrics = "auc", # corba error
-      verbose = 0
+      verbose = 0,
+      early_stopping_rounds = early_stopping_rounds
     )
-
+    
     # Obtenir el millor AUC per aquests hiperparàmetres
     current_auc <- max(cv_results$evaluation_log$test_auc_mean)
     
@@ -76,20 +85,18 @@ hyperparams_xgboost_search <- function(X, y, param_grid) {
     if (current_auc > best_auc) {
       best_auc <- current_auc
       best_params <- params
+      best_nrounds <- cv_results$best_iteration # afegim la iteració òptima trobada
     }
-    
   }
   
   # Retornar els millors hiperparàmetres
-  return(list(best_params = best_params, best_auc = best_auc))
-  
+  return(list(best_params = best_params, best_nrounds = best_nrounds, best_auc = best_auc))
 }
 
 # Capturem les variables independents que són les corresponents als gens o conjunts de gens. Aquestes van de la columna 7
 # a la N (10647) però n'hem d'excloure les 3 últimes variables temporals afegides en el pas anterior d'indicadors de grau específic.
 # Ho convertim en matriu per a que sigui compatible amb l'algorisme.
 X <- as.matrix(dataset[, 7:(ncol(dataset) - 3)])
-
 
 # Definim el grid de possibilitats d'hiperparàmetres per a cercar els òptims
 param_grid_xgboost <- expand.grid(
@@ -106,16 +113,23 @@ best_hyperparams_xgboost_grade_2 <- hyperparams_xgboost_search(X,"is_grade_2",pa
 best_hyperparams_xgboost_grade_3 <- hyperparams_xgboost_search(X,"is_grade_3",param_grid_xgboost)
 
 # Mostra els millors hiperparàmetres per a cada grau histològic
-cat("Els millors hiperparàmetres trobats per validació creuada sobre l'avaluació del grau histològic 1, són:",paste(names(best_hyperparams_xgboost_grade_1$best_params),":", unlist(best_hyperparams_xgboost_grade_1$best_params)),"\n")
-cat("Els millors hiperparàmetres trobats per validació creuada sobre l'avaluació del grau histològic 2, són:",paste(names(best_hyperparams_xgboost_grade_2$best_params),":", unlist(best_hyperparams_xgboost_grade_2$best_params)),"\n")
-cat("Els millors hiperparàmetres trobats per validació creuada sobre l'avaluació del grau histològic 3, són:",paste(names(best_hyperparams_xgboost_grade_3$best_params),":", unlist(best_hyperparams_xgboost_grade_3$best_params)),"\n")
+cat("Els millors hiperparàmetres trobats per al grau histològic 1 són:",
+    paste(names(best_hyperparams_xgboost_grade_1$best_params), "=", unlist(best_hyperparams_xgboost_grade_1$best_params), collapse = ", "),
+    ", amb nrounds =", best_hyperparams_xgboost_grade_1$best_nrounds, "\n")
 
+cat("Els millors hiperparàmetres trobats per al grau histològic 2 són:",
+    paste(names(best_hyperparams_xgboost_grade_2$best_params), "=", unlist(best_hyperparams_xgboost_grade_2$best_params), collapse = ", "),
+    ", amb nrounds =", best_hyperparams_xgboost_grade_2$best_nrounds, "\n")
+
+cat("Els millors hiperparàmetres trobats per al grau histològic 3 són:",
+    paste(names(best_hyperparams_xgboost_grade_3$best_params), "=", unlist(best_hyperparams_xgboost_grade_3$best_params), collapse = ", "),
+    ", amb nrounds =", best_hyperparams_xgboost_grade_3$best_nrounds, "\n")
 
 # Funció genèrica per obtenir la rellevància dels diferents gens o conjunts de gens a partir de cada grau histològic diferent i
 # el conjunt d'hiperparàmetres òptims trobats amb la corss validation grid Search
 # La variable objectiu ve marcada pel paràmetre indicador de grau i el retorn es el conjunt de resultats d'importàncies 
 # per al grau concret.
-xgboost_importance_by_grade <- function(X, histological_grade, best_params) {
+xgboost_importance_by_grade <- function(X, histological_grade, best_params, best_nrounds) {
   
   cat("Cerca d'importàncies ",histological_grade, " \n")
   
@@ -125,7 +139,7 @@ xgboost_importance_by_grade <- function(X, histological_grade, best_params) {
   dtrain <- xgb.DMatrix(data = X, label = dataset[[histological_grade]])
   
   # Entrenem model amb la matriu i els paràmetres
-  model_final <- xgb.train(params = best_params, data = dtrain, nrounds = 100)
+  model_final <- xgb.train(params = best_params, data = dtrain, nrounds = best_nrounds)
   
   # Obtenir i retornar la importància de les característiques 
   importance <- xgb.importance(model = model_final)
@@ -140,11 +154,11 @@ top_num = 15
 # A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
 # per a cada classe (grau histològic: 1, 2 i 3)
 # importàncies GRAU HISTOLÒGIC 1
-importance_xgboost_grade_1 <- xgboost_importance_by_grade(X,"is_grade_1", best_hyperparams_xgboost_grade_1$best_params)
+importance_xgboost_grade_1 <- xgboost_importance_by_grade(X,"is_grade_1", best_hyperparams_xgboost_grade_1$best_params, best_hyperparams_xgboost_grade_1$best_nrounds)
 # importàncies GRAU HISTOLÒGIC 2
-importance_xgboost_grade_2 <- xgboost_importance_by_grade(X,"is_grade_2", best_hyperparams_xgboost_grade_2$best_params)
+importance_xgboost_grade_2 <- xgboost_importance_by_grade(X,"is_grade_2", best_hyperparams_xgboost_grade_2$best_params, best_hyperparams_xgboost_grade_2$best_nrounds)
 # importàncies GRAU HISTOLÒGIC 3
-importance_xgboost_grade_3 <- xgboost_importance_by_grade(X,"is_grade_3", best_hyperparams_xgboost_grade_3$best_params)
+importance_xgboost_grade_3 <- xgboost_importance_by_grade(X,"is_grade_3", best_hyperparams_xgboost_grade_3$best_params, best_hyperparams_xgboost_grade_3$best_nrounds)
 
 
 # Mostra del TOP 15 en el rànking de millors resultats d'importància de gens o conjunts de gens per a cada grau histològic

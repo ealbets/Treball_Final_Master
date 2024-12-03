@@ -2,7 +2,7 @@
 
 ### LOAD DATA ###
 # Ruta al fitxer de dades 1
-file_path_1 <- "datos/data_part_1.txt"
+file_path_1 <- "data/input/data_part_1.txt"
 
 # Read lines
 lines_file_1 <- readLines(file_path_1)

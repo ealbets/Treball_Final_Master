@@ -6,7 +6,7 @@ library(dplyr)
 # Empresa de la plataforma: Affymetrix, ja conté un camp 'GENE_SYMBOL'
 
 # Ruta a la taula de la plataforma
-file_to_platform_affymetrix <- "data/platform_microarrays/"
+file_to_platform_affymetrix <- "data/input/platform_microarrays/"
 file_platofrm_name <- "GPL570-55999.txt"
 ruta_destino <- "data/gene_expressions_matrix/"
 

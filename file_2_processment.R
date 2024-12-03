@@ -2,7 +2,7 @@
 
 ### LOAD DATA ###
 # Path to file
-file_path_2 <- "datos/data_part_2.txt"
+file_path_2 <- "data/input/data_part_2.txt"
 
 # Read lines
 lines_file_2 <- readLines(file_path_2)
