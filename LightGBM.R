@@ -200,6 +200,12 @@ importance_lgbm_grade_1$Feature <- reversed_map_lgbm[importance_lgbm_grade_1$Fea
 importance_lgbm_grade_2$Feature <- reversed_map_lgbm[importance_lgbm_grade_2$Feature]
 importance_lgbm_grade_3$Feature <- reversed_map_lgbm[importance_lgbm_grade_3$Feature]
 
+# Resultats finals a partir de la mitjana aritmètica dels acumulats en les iteracions anteriors.
+# Excloem la columna 'Features' en l'operació
+importance_lgbm_grade_1 <- importance_lgbm_grade_1 %>% mutate(across(where(is.numeric), ~ . / num_times))
+importance_lgbm_grade_2 <- importance_lgbm_grade_2 %>% mutate(across(where(is.numeric), ~ . / num_times))
+importance_lgbm_grade_3 <- importance_lgbm_grade_3 %>% mutate(across(where(is.numeric), ~ . / num_times))
+
 # Mostra del TOP 15 en el rànking de millors resultats d'importància de gens o conjunts de gens per a cada grau histològic
 # TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 1
 cat("Top ", top_num,  ": GRAU HISTOLÒGIC 1 --> Gens/s més importants:\n")
