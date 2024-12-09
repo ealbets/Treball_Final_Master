@@ -7,7 +7,7 @@ library(randomForest)
 library(caret)
 library(progress)
 
-path_images <- "images/RandomForest/"
+path_images <- "data/output/images/RandomForest/"
 
 ##-- MACHINE-LEARNING SUPERVISAT AMB REGRESSIÓ: Algorisme de Random Forest --##
 
@@ -100,8 +100,8 @@ colnames(X) <- column_map[colnames(X)]
 
 # Graella de possibles hiperparàmetres per a trobar-ne els valors òptims
 param_grid_rf <- expand.grid(
-  mtry = c(100, 250, 500, 750, 1000),     # Número de característiques considerades
-  ntree = c(500, 700, 1000, 2500, 3000),   # Número d'arbres
+  mtry = c(100, 500, 1000),     # Número de característiques considerades
+  ntree = c(500, 1000, 3000),   # Número d'arbres
   nodesize = c(1, 5, 10)      # Mínim tamany de nodes
 )
 

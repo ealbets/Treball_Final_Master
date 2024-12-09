@@ -8,22 +8,13 @@ library(ggplot2)
 library(progress)
 library(reshape2)
 
-path_images <- "images/LightGBM/"
+path_images <- "data/output/images/LightGBM/"
 
 ##-- MACHINE-LEARNING SUPERVISAT AMB REGRESSIÓ: Algorisme de LightGBM --##
 
 cat("-------LIGHTGBM ALGORITHM----------\n")
 
-# Variable objectiu--> grau histològic (categòrica ordinal)
-# Variables independents --> conjunt de 10.600 columnes referents a gens (valors continus normalitzats entre 0 i 1)
-
-# Crear variables binàries per a cada grau histològic
-dataset$is_grade_1 <- ifelse(dataset$HISTOLOGICAL_GRADE == 1, 1, 0)
-dataset$is_grade_2 <- ifelse(dataset$HISTOLOGICAL_GRADE == 2, 1, 0)
-dataset$is_grade_3 <- ifelse(dataset$HISTOLOGICAL_GRADE == 3, 1, 0)
-
-
-# Funció genèrica per a trobar els hiperpàrmatres òptims (aquells que maximitzen LightGBM ) emprant la validació creuada
+# Funció genèrica per a trobar els hiperpàrmatres òptims (aquells que maximitzen AUC ) emprant la validació creuada
 # i la graella d'opcions de param_grid
 hyperparams_search_lgbm <- function(X, y, param_grid) {
   cat("Cerca d'hiperparàmetres òptims: \n")
@@ -31,10 +22,11 @@ hyperparams_search_lgbm <- function(X, y, param_grid) {
   # Inicialitzar les variables per guardar el millor AUC i els seus hiperparàmetres
   best_auc <- -Inf
   best_params <- NULL
+  best_nrounds <- NULL
   
   # Barra de progrés per a tenir una noció del temps
   pb <- progress_bar$new(
-    format = " Avaluant hiperparàmetres :current/:total (:percent) Temps restant: \n",
+    format = " Avaluant hiperparàmetres en LightGBM :current/:total (:percent) \n",
     total = nrow(param_grid),
     clear = FALSE,
     width = 60
@@ -60,15 +52,22 @@ hyperparams_search_lgbm <- function(X, y, param_grid) {
         paste(names(params), unlist(params), sep = "=", collapse = ", "), "\n")
     
     
+    # Número màxim de rondes (es fixa alt) i early stopping
+    max_nrounds <- 1000
+    early_stopping_rounds <- 15
+    
+    
     # Validació creuada emprant .cv 
     cv_results <- lgb.cv(
       params = params,
       data = lgb.Dataset(data = X, label = dataset[[y]]),
-      nrounds = 100, # iteracions
-      nfold = 3,
-      eval = "auc",
-      verbose = -1
+      nrounds = max_nrounds, # iteracions
+      nfold = 3, # particions o plecs del conjunt de dades, 1/3 per provar i 2/3 per entrenar
+      eval = "auc", # mètrica de rendiment
+      verbose = -1,
+      early_stopping_rounds = early_stopping_rounds
     )
+    
     
     # Obtenir el millor AUC per aquests hiperparàmetres
     current_auc <- max(unlist(cv_results$record_evals$valid$auc$eval))
@@ -77,20 +76,15 @@ hyperparams_search_lgbm <- function(X, y, param_grid) {
     if (current_auc > best_auc) {
       best_auc <- current_auc
       best_params <- params
+      best_nrounds <- cv_results$best_iter # afegim la iteració òptima trobada
     }
     
   }
   
   # Retornar els millors hiperparàmetres
-  return(list(best_params = best_params, best_auc = best_auc))
+  return(list(best_params = best_params, best_nrounds = best_nrounds, best_auc = best_auc))
   
 }
-
-
-# Capturem les variables independents que són les corresponents als gens o conjunts de gens. Aquestes van de la columna 7
-# a la N (10647) però n'hem d'excloure les 3 últimes variables temporals afegides en el pas anterior d'indicadors de grau específic.
-# Ho convertim en matriu per a que sigui compatible amb l'algorisme.
-X <- as.matrix(dataset[, 7:(ncol(dataset) - 3)])
 
 # Degut a les limitacions i les restriccions de l'algorisme LightGBM amb els noms de les columnes que actuen com a característiques
 # assignem un mapa de variables i canviem els noms per X0... Xn (on 'n' es el nombre total de característiques)
@@ -110,20 +104,27 @@ param_grid_lgbm <- expand.grid(
 
 # Cridar a la funció per a cada un dels graus histològics
 best_hyperparams_lgbm_grade_1 <- hyperparams_search_lgbm(X,"is_grade_1",param_grid_lgbm)
-best_hyperparams_lbgm_grade_2 <- hyperparams_search_lgbm(X,"is_grade_2",param_grid_lgbm)
-best_hyperparams_lbgm_grade_3 <- hyperparams_search_lgbm(X,"is_grade_3",param_grid_lgbm)
+best_hyperparams_lgbm_grade_2 <- hyperparams_search_lgbm(X,"is_grade_2",param_grid_lgbm)
+best_hyperparams_lgbm_grade_3 <- hyperparams_search_lgbm(X,"is_grade_3",param_grid_lgbm)
 
 # Mostra els millors hiperparàmetres per a cada grau histològic
-cat("Els millors hiperparàmetres trobats per validació creuada sobre l'avaluació del grau histològic 1, són:",paste(names(best_hyperparams_lbgm_grade_1$best_params),":", unlist(best_hyperparams_lbgm_grade_1$best_params)),"\n")
-cat("Els millors hiperparàmetres trobats per validació creuada sobre l'avaluació del grau histològic 2, són:",paste(names(best_hyperparams_lbgm_grade_2$best_params),":", unlist(best_hyperparams_lbgm_grade_2$best_params)),"\n")
-cat("Els millors hiperparàmetres trobats per validació creuada sobre l'avaluació del grau histològic 3, són:",paste(names(best_hyperparams_lbgm_grade_3$best_params),":", unlist(best_hyperparams_lbgm_grade_3$best_params)),"\n")
+cat("Els millors hiperparàmetres trobats a LightGBM per al grau histològic 1 són:",
+    paste(names(best_hyperparams_lgbm_grade_1$best_params), "=", unlist(best_hyperparams_lgbm_grade_1$best_params), collapse = ", "),
+    ", amb nrounds =", best_hyperparams_lgbm_grade_1$best_nrounds, "\n")
 
+cat("Els millors hiperparàmetres trobats a LightGBM per al grau histològic 2 són:",
+    paste(names(best_hyperparams_lgbm_grade_2$best_params), "=", unlist(best_hyperparams_lgbm_grade_2$best_params), collapse = ", "),
+    ", amb nrounds =", best_hyperparams_lgbm_grade_2$best_nrounds, "\n")
+
+cat("Els millors hiperparàmetres trobats a LightGBM per al grau histològic 3 són:",
+    paste(names(best_hyperparams_lgbm_grade_3$best_params), "=", unlist(best_hyperparams_lgbm_grade_3$best_params), collapse = ", "),
+    ", amb nrounds =", best_hyperparams_lgbm_grade_3$best_nrounds, "\n")
 
 # Funció genèrica per obtenir la rellevància dels diferents gens o conjunts de gens a partir de cada grau histològic diferent i
 # el conjunt d'hiperparàmetres òptims trobats amb la corss validation grid Search
 # La variable objectiu ve marcada pel paràmetre indicador de grau i el retorn es el conjunt de resultats d'importàncies 
 # per al grau concret.
-lgbm_importance_by_grade <- function(X, histological_grade, best_params) {
+lgbm_importance_by_grade <- function(X, histological_grade, best_params, best_nrounds) {
   
   cat("Cerca d'importàncies ",histological_grade, " \n")
   
@@ -133,7 +134,7 @@ lgbm_importance_by_grade <- function(X, histological_grade, best_params) {
   dtrain <- lgb.Dataset(data = X, label = dataset[[histological_grade]])
   
   # Entrenem model amb la matriu i els paràmetres
-  model_final <- lgb.train(params = best_params, data = dtrain, nrounds = 100, verbose = 1)
+  model_final <- lgb.train(params = best_params, data = dtrain, nrounds = best_nrounds, verbose = -1)
   
   # Obtenir i retornar la importància de les característiques 
   importance <- lgb.importance(model = model_final)
@@ -142,42 +143,79 @@ lgbm_importance_by_grade <- function(X, histological_grade, best_params) {
   
 }
 
+# A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
+# per a cada classe (grau histològic: 1, 2 i 3). Ho executarem 20 vegades per assgurar-nos l'exactitud del càlcul
+# i el resultat final serà la mitjana aritmètica de l'acumulació de resultats de les importàncies de cada iteració
+
+# iteracions
+num_times <- 20
+
+# acumulats
+acc_importance_lightgbm_g1 <- NULL
+acc_importance_lightgbm_g2 <- NULL
+acc_importance_lightgbm_g3 <- NULL
+
+# Iterar y acumular resultats
+for (i in 1:num_times) {
+  
+  cat("---Iteració: ", i, "---\n")
+  # A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
+  # per a cada classe (grau histològic: 1, 2 i 3)
+  # importàncies GRAU HISTOLÒGIC 1
+  importance_lgbm_grade_1 <- lgbm_importance_by_grade(X, "is_grade_1", best_hyperparams_lgbm_grade_1$best_params, best_hyperparams_lgbm_grade_1$best_nrounds)
+  # importàncies GRAU HISTOLÒGIC 2
+  importance_lgbm_grade_2 <- lgbm_importance_by_grade(X, "is_grade_2", best_hyperparams_lgbm_grade_2$best_params, best_hyperparams_lgbm_grade_2$best_nrounds)
+  # importàncies GRAU HISTOLÒGIC 3
+  importance_lgbm_grade_3 <- lgbm_importance_by_grade(X, "is_grade_3", best_hyperparams_lgbm_grade_3$best_params, best_hyperparams_lgbm_grade_3$best_nrounds)
+  
+  # Acumulació
+  if (is.null(acc_importance_lightgbm_g1) && is.null(acc_importance_lightgbm_g2) && is.null(acc_importance_lightgbm_g3)) {
+    # assignació la primera vegada
+    acc_importance_lightgbm_g1 <- importance_lgbm_grade_1
+    acc_importance_lightgbm_g2 <- importance_lgbm_grade_2
+    acc_importance_lightgbm_g3 <- importance_lgbm_grade_3
+  } else {
+    # suma resultats quan no es la primera iteració
+    acc_importance_lightgbm_g1 <- acc_importance_lightgbm_g1 + importance_lgbm_grade_1
+    acc_importance_lightgbm_g2 <- acc_importance_lightgbm_g2 + importance_lgbm_grade_2
+    acc_importance_lightgbm_g3 <- acc_importance_lightgbm_g3 + importance_lgbm_grade_3
+  }
+  
+}
+
+# Resultats finals a partir de la mitjana aritmètica dels acumulats en les iteracions anteriors.
+# Excloem la columna 'Features' en l'operació
+importance_lgbm_grade_1 <- importance_lgbm_grade_1 %>% mutate(across(where(is.numeric), ~ . / num_times))
+importance_lgbm_grade_2 <- importance_lgbm_grade_2 %>% mutate(across(where(is.numeric), ~ . / num_times))
+importance_lgbm_grade_3 <- importance_lgbm_grade_3 %>% mutate(across(where(is.numeric), ~ . / num_times))
+
 # Establim el nombre de mostres que es volen mostrar en el rànking dels millors
 top_num = 10
-
-# A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
-# per a cada classe (grau histològic: 1, 2 i 3)
-# importàncies GRAU HISTOLÒGIC 1
-importance_lbgm_grade_1 <- lgbm_importance_by_grade(X, "is_grade_1", best_hyperparams_lbgm_grade_1$best_params)
-# importàncies GRAU HISTOLÒGIC 2
-importance_lbgm_grade_2 <- lgbm_importance_by_grade(X, "is_grade_2", best_hyperparams_lbgm_grade_2$best_params)
-# importàncies GRAU HISTOLÒGIC 3
-importance_lbgm_grade_3 <- lgbm_importance_by_grade(X, "is_grade_3", best_hyperparams_lbgm_grade_3$best_params)
 
 
 # Invertir el mapeig inicial del gens / característiques: de noms generats a noms originals
 reversed_map_lgbm <- setNames(names(column_map_lgbm), column_map_lgbm)
 # Reemplaçar els noms a la columna 'Feature' amb els noms originals
-importance_lbgm_grade_1$Feature <- reversed_map_lgbm[importance_lbgm_grade_1$Feature]
-importance_lbgm_grade_2$Feature <- reversed_map_lgbm[importance_lbgm_grade_2$Feature]
-importance_lbgm_grade_3$Feature <- reversed_map_lgbm[importance_lbgm_grade_3$Feature]
+importance_lgbm_grade_1$Feature <- reversed_map_lgbm[importance_lgbm_grade_1$Feature]
+importance_lgbm_grade_2$Feature <- reversed_map_lgbm[importance_lgbm_grade_2$Feature]
+importance_lgbm_grade_3$Feature <- reversed_map_lgbm[importance_lgbm_grade_3$Feature]
 
 # Mostra del TOP 15 en el rànking de millors resultats d'importància de gens o conjunts de gens per a cada grau histològic
 # TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 1
 cat("Top ", top_num,  ": GRAU HISTOLÒGIC 1 --> Gens/s més importants:\n")
-print(head(importance_lbgm_grade_1, top_num))
+print(head(importance_lgbm_grade_1, top_num))
 # TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 2
 cat("Top ", top_num,  ": GRAU HISTOLÒGIC 2 --> Gens/s més importants:\n")
-print(head(importance_lbgm_grade_2, top_num))
+print(head(importance_lgbm_grade_2, top_num))
 # TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 3
 cat("Top ", top_num,  ": GRAU HISTOLÒGIC 3 --> Gens/s més importants:\n")
-print(head(importance_lbgm_grade_3, top_num))
+print(head(importance_lgbm_grade_3, top_num))
 
 
 # Visualització de resultants emprant gràfiques verticals amb 'ggplot'
-feature_lbgm_importance1 <- importance_lbgm_grade_1 %>% arrange(desc(Gain))
-feature_lbgm_importance2 <- importance_lbgm_grade_2 %>% arrange(desc(Gain))
-feature_lbgm_importance3 <- importance_lbgm_grade_3 %>% arrange(desc(Gain))
+feature_lbgm_importance1 <- importance_lgbm_grade_1 %>% arrange(desc(Gain))
+feature_lbgm_importance2 <- importance_lgbm_grade_2 %>% arrange(desc(Gain))
+feature_lbgm_importance3 <- importance_lgbm_grade_3 %>% arrange(desc(Gain))
 
 
 # Crida a la funció que ploteja els diagrames de barres hortizontals per a les característiques importants del dataset

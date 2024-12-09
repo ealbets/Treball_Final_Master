@@ -1,13 +1,4 @@
 ## SELECCIÓ I REDUCCIÓ DE CARACTERÍSTIQUES ##
-## Cal sotmetre tot el conjunt de files amb informació genètica a un procés de selecció que triï aquells gens o conjunt de gens que tenen més rellevància
-## per tal de reduir la dimensionalitat de les variables a analitzar pels posterors models de Machine-Learning i reduir soroll, costos temporals i computacionals
-
-# Com que encara no disposem d'una variable objectiu, una manera de seleccionar les característiques (gens) més importants serà a partir de la desviació estàndard
-# de cada una de les files a partir dels valors de totes les mostres. La desviació estàndard és un bon indicador de variabilitat de les mostres. Les files (gens)
-# amb valors molt baixos de desviació estàndard denotaran una variabilitat molt baixa i per tant, la majoria dels seus valors seran similars i sense diferències
-# significatives (propers a la mitjana aritmètica). El que ens interessa es veure quins gens són capaços de classificar i per tant, els que variïn poc no tindran
-# aquesta capacitat ja que serran iguals per a tots els graus histològics. Pel contrari, els que tinguin valors més alts o més baixos són els que aportaran més
-# informació.
 
 cat("SELECCIÓ DE CARACTERÍSTIQUES a partir de la desviació estàndard\n")
 
@@ -52,6 +43,7 @@ cat("MUNTATGE FINAL DEL CONJUNT DE DADES\n")
 # Per tant, per tal de poder tenir les dades de forma que cada fila representi un pacient caldrà transposar la matriu final d'expressions genètiques i capgirar les
 # files per les columnes (els gens ara seran columnes i les mostres dels pacients seran files).
 
+# Transposició matriu expressions genètiques
 cat("Transposició matriu d'expressions genètiques\n")
 # Eliminem la columna temporal 'Average' necessària en el punt anterior
 matriu_expressio_genetica_final_unificada_filtrada <- matriu_expressio_genetica_final_unificada_filtrada[, !names(matriu_expressio_genetica_final_unificada_filtrada) %in% "SD"]

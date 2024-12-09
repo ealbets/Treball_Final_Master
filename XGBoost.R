@@ -8,7 +8,7 @@ library(dplyr)
 library(progress)
 library(reshape2)
 
-path_images <- "images/XGBoost/"
+path_images <- "data/output/images/XGBoost/"
 
 ##-- MACHINE-LEARNING SUPERVISAT AMB REGRESSIÓ: Algorisme de XGBoost --##
 
@@ -47,7 +47,7 @@ hyperparams_xgboost_search <- function(X, y, param_grid) {
   
   # Número màxim de rondes (es fixa alt) i early stopping
   max_nrounds <- 1000
-  early_stopping_rounds <- 10
+  early_stopping_rounds <- 15
   
   # Bucle sobre la graella
   for (i in 1:nrow(param_grid)) {
@@ -148,20 +148,57 @@ xgboost_importance_by_grade <- function(X, histological_grade, best_params, best
   
 }
 
-# Establim el nombre de mostres que es volen mostrar en el rànking dels millors
-top_num = 15
+
 
 # A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
-# per a cada classe (grau histològic: 1, 2 i 3)
-# importàncies GRAU HISTOLÒGIC 1
-importance_xgboost_grade_1 <- xgboost_importance_by_grade(X,"is_grade_1", best_hyperparams_xgboost_grade_1$best_params, best_hyperparams_xgboost_grade_1$best_nrounds)
-# importàncies GRAU HISTOLÒGIC 2
-importance_xgboost_grade_2 <- xgboost_importance_by_grade(X,"is_grade_2", best_hyperparams_xgboost_grade_2$best_params, best_hyperparams_xgboost_grade_2$best_nrounds)
-# importàncies GRAU HISTOLÒGIC 3
-importance_xgboost_grade_3 <- xgboost_importance_by_grade(X,"is_grade_3", best_hyperparams_xgboost_grade_3$best_params, best_hyperparams_xgboost_grade_3$best_nrounds)
+# per a cada classe (grau histològic: 1, 2 i 3). Ho executarem 20 vegades per assgurar-nos l'exactitud del càlcul
+# i el resultat final serà la mitjana aritmètica de l'acumulació de resultats de les importàncies de cada iteració
+
+# iteracions
+num_times <- 20
+
+# acumulats
+acc_importance_xgboost_g1 <- NULL
+acc_importance_xgboost_g2 <- NULL
+acc_importance_xgboost_g3 <- NULL
+
+# Iterar y acumular resultats
+for (i in 1:num_times) {
+
+  cat("---Iteració: ", i, "---\n")
+  # importàncies GRAU HISTOLÒGIC 1
+  importance_xgboost_grade_1 <- xgboost_importance_by_grade(X,"is_grade_1", best_hyperparams_xgboost_grade_1$best_params, best_hyperparams_xgboost_grade_1$best_nrounds)
+  # importàncies GRAU HISTOLÒGIC 2
+  importance_xgboost_grade_2 <- xgboost_importance_by_grade(X,"is_grade_2", best_hyperparams_xgboost_grade_2$best_params, best_hyperparams_xgboost_grade_2$best_nrounds)
+  # importàncies GRAU HISTOLÒGIC 3
+  importance_xgboost_grade_3 <- xgboost_importance_by_grade(X,"is_grade_3", best_hyperparams_xgboost_grade_3$best_params, best_hyperparams_xgboost_grade_3$best_nrounds)
+
+  # Acumulació
+  if (is.null(acc_importance_xgboost_g1) && is.null(acc_importance_xgboost_g2) && is.null(acc_importance_xgboost_g3)) {
+    # assignació la primera vegada
+    accum_importance_grade_1 <- importance_xgboost_grade_1
+    accum_importance_grade_2 <- importance_xgboost_grade_2
+    accum_importance_grade_3 <- importance_xgboost_grade_3
+  } else {
+    # suma resultats quan no es la primera iteració
+    accum_importance_grade_1 <- accum_importance_grade_1 + importance_xgboost_grade_1
+    accum_importance_grade_2 <- accum_importance_grade_2 + importance_xgboost_grade_2
+    accum_importance_grade_3 <- accum_importance_grade_3 + importance_xgboost_grade_3
+  }
+
+}
+
+# Resultats finals a partir de la mitjana aritmètica dels acumulats en les iteracions anteriors.
+# Excloem la columna 'Features' en l'operació
+importance_xgboost_grade_1 <- importance_xgboost_grade_1 %>% mutate(across(where(is.numeric), ~ . / num_times))
+importance_xgboost_grade_2 <- importance_xgboost_grade_2 %>% mutate(across(where(is.numeric), ~ . / num_times))
+importance_xgboost_grade_3 <- importance_xgboost_grade_3 %>% mutate(across(where(is.numeric), ~ . / num_times))
 
 
-# Mostra del TOP 15 en el rànking de millors resultats d'importància de gens o conjunts de gens per a cada grau histològic
+# Establim el nombre de mostres que es volen mostrar en el rànking dels millors
+top_num = 10
+
+# Mostra del TOP 10 en el rànking de millors resultats d'importància de gens o conjunts de gens per a cada grau histològic
 # TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 1
 cat("Top ", top_num,  ": GRAU HISTOLÒGIC 1 --> Gens/s més importants:\n")
 print(head(importance_xgboost_grade_1, top_num))
@@ -174,11 +211,12 @@ print(head(importance_xgboost_grade_3, top_num))
 
 
 # Visualització de resultats emprant gràfiques verticals amb 'ggplot'
+# Resultats segons 'Gain'
 feature_importance1 <- importance_xgboost_grade_1 %>% arrange(desc(Gain))
 feature_importance2 <- importance_xgboost_grade_2 %>% arrange(desc(Gain))
 feature_importance3 <- importance_xgboost_grade_3 %>% arrange(desc(Gain))
 
-# Crida a la funció que ploteja els diagrames de barres hortizontals per a les característiques importants del dataset
+# Crida a la funció genèrica que ploteja els diagrames de barres hortizontals per a les característiques importants del dataset
 xlabel <- "Gens"
 ylabel <- "Gain"
 title1 <- paste0("XGBoost - ", top_num, " Importància Genètica (Grau Histològic 1) segons Gain")

@@ -66,6 +66,10 @@ matriu_expressio_genetica_final_unificada <- merge(
   all = TRUE
 )
 
+# Elidim els 5 últims registres que no aporten cap tipus d'informació gènica
+n <- nrow(matriu_expressio_genetica_final_unificada)
+matriu_expressio_genetica_final_unificada <- matriu_expressio_genetica_final_unificada[1:(n - 5), ]
+
 # Visualizem els resultats
 head(matriu_expressio_genetica_final_unificada)
 tail(matriu_expressio_genetica_final_unificada) 
@@ -79,8 +83,6 @@ cat("La matriu d'expressió genètica processada 1 té ", dimensions_finals[1], 
 
 print("PROCESSAT PAS 4: Bolcat de resultats en fitxer .csv")
 # Escrivim els resultats a un fitxer .CSV 
-# Bolquem els resultats en un fitxer .csv i elidim els 5 últims registres que no aporten cap tipus d'informació gènica
-n <- nrow(matriu_expressio_genetica_final_unificada)
 write_to_csv(matriu_expressio_genetica_final_unificada[1:(n - 5), ], ruta_destino, "matriu_expressio_genetica_final.csv")
 
 
