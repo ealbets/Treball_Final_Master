@@ -151,6 +151,7 @@ lightgbm_train_predict_importances_by_grade <- function(X, histological_grade, b
   dtrain <- lgb.Dataset(data = X_train, label = y_train)
   dtest <- lgb.Dataset(data = X_test, label = y_test)
   
+  cat("Entrenament per a ",histological_grade, " \n")
   # Entrenament del model amb els hiperparàmetres òptims
   model <- lgb.train(params = best_params, data = dtrain, nrounds = best_nrounds, verbose = -1)
   
@@ -162,10 +163,6 @@ lightgbm_train_predict_importances_by_grade <- function(X, histological_grade, b
   y_pred_labels <- ifelse(y_pred > 0.5, 1, 0)
   
   # Càlcul de la matriu de confusió segons els resultats obtinguts en la predicció i la realitat
-  # Inicialització de la matriu de confusió amb zeros
-  confusion_matrix <- matrix(0, nrow = 2, ncol = 2, 
-                        dimnames = list(Predicted = c(0, 1), Actual = c(0, 1)))
-  # Càlcul
   confusion_matrix <- table(Predicted = y_pred_labels, Actual = y_test)
   # obtenció de la mètrica de rendiment de l'àrea sota la corba
   roc <- roc(y_test, y_pred)

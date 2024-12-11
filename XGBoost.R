@@ -164,11 +164,6 @@ xgboost_train_predict_importances_by_grade <- function(X, histological_grade, be
   # Resultats superiors a 0.5 s'etiqueten com a 1 i inferiors, com a 0
   y_pred_labels <- ifelse(y_pred > 0.5, 1, 0)
   
-  
-  # Inicialització de la matriu de confusió amb zeros
-  confusion_matrix <- matrix(0, nrow = 2, ncol = 2, 
-                             dimnames = list(Predicted = c(0, 1), Actual = c(0, 1)))
-  # Càlcul
   # Càlcul de la matriu de confusió segons els resultats obtinguts en la predicció i la realitat
   confusion_matrix <- table(Predicted = y_pred_labels, Actual = y_test)
   # obtenció de la mètrica de rendiment de l'àrea sota la corba

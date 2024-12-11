@@ -18,12 +18,6 @@ path_images <- "images/ElasticNet/"
 
 cat("-------ELASTIC NET ALGORITHM----------\n")
 
-# Crear variables binàries per a cada grau histològic
-dataset$is_grade_1 <- ifelse(dataset$HISTOLOGICAL_GRADE == 1, 1, 0)
-dataset$is_grade_2 <- ifelse(dataset$HISTOLOGICAL_GRADE == 2, 1, 0)
-dataset$is_grade_3 <- ifelse(dataset$HISTOLOGICAL_GRADE == 3, 1, 0)
-
-
 # Funció genèrica per a trobar els hiperpàrmatres òptims (aquells que maximitzen ) emprant la validació creuada
 # i la graella d'opcions de param_grid
 hyperparams_en_search <- function(X, y, alpha, lambdes) {
@@ -73,15 +67,9 @@ hyperparams_en_search <- function(X, y, alpha, lambdes) {
   
 }
 
-# Capturem les variables independents que són les corresponents als gens o conjunts de gens. Aquestes van de la columna 7
-# a la N (10647) però n'hem d'excloure les 3 últimes variables temporals afegides en el pas anterior d'indicadors de grau específic.
-# Ho convertim en matriu per a que sigui compatible amb l'algorisme.
-X <- as.matrix(dataset[, 7:(ncol(dataset) - 3)])
-
-
 # Definim les possibilitats d'hiperparàmetres per a cercar els òptims
 # seqüència de valors alpha i valors lambda
-alpha <- seq(0.1, 1, by = 0.15)
+alpha <- seq(0.1, 0.9, by = 0.15)
 lambdes <- 10^seq(-4, 2, length.out = 50)  # 50 valors entre 0.0001 i 100
 
 

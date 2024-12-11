@@ -3,13 +3,15 @@ if (!require("glmnet")) install.packages("glmnet")
 if (!require("dplyr")) install.packages("dplyr")
 if (!require("ggplot2")) install.packages("ggplot2")
 if (!require("progress")) install.packages("progress")
+if (!require("pROC")) install.packages("pROC")
 
 library(glmnet)
 library(dplyr)
 library(ggplot2)
 library(progress)
+library(pROC)
 
-path_images <- "images/RidgeRegression/"
+path_images <- "data/output/images/RidgeRegression/"
 
 ##-- MACHINE-LEARNING SUPERVISAT AMB REGRESSIÓ: Algorisme de Ridge Regression --##
 
@@ -17,11 +19,6 @@ path_images <- "images/RidgeRegression/"
 # Variables independents --> conjunt de 10.600 columnes referents a gens (valors continus normalitzats entre 0 i 1)
 
 cat("-------RIDGE REGRESSION ALGORITHM----------\n")
-
-# Crear variables binàries per a cada grau histològic
-dataset$is_grade_1 <- ifelse(dataset$HISTOLOGICAL_GRADE == 1, 1, 0)
-dataset$is_grade_2 <- ifelse(dataset$HISTOLOGICAL_GRADE == 2, 1, 0)
-dataset$is_grade_3 <- ifelse(dataset$HISTOLOGICAL_GRADE == 3, 1, 0)
 
 
 # Funció genèrica per a trobar els hiperpàrmatres òptims (aquells que maximitzen ) emprant la validació creuada
@@ -47,7 +44,7 @@ hyperparams_ridge_search <- function(X, y, lambdes) {
       X, dataset[[y]],
       alpha = alpha_val,
       lambda = lambdes,
-      family = "binomial",
+      family = "binomial", # per a regresió binaria
       type.measure = "auc",
       nfolds = 9 # plecs en la validació creuada, com més petit menys temps de càlcul però menys precisió
     )
@@ -68,11 +65,6 @@ hyperparams_ridge_search <- function(X, y, lambdes) {
   
 }
 
-# Capturem les variables independents que són les corresponents als gens o conjunts de gens. Aquestes van de la columna 7
-# a la N (10647) però n'hem d'excloure les 3 últimes variables temporals afegides en el pas anterior d'indicadors de grau específic.
-# Ho convertim en matriu per a que sigui compatible amb l'algorisme.
-X <- as.matrix(dataset[, 7:(ncol(dataset) - 3)])
-
 
 # Definim les possibilitats d'hiperparàmetres per a cercar els òptims
 # seqüència de valors lambda en escala logarítmica
@@ -90,18 +82,61 @@ cat("Els millors hiperparàmetres trobats per validació creuada sobre l'avaluac
 cat("Els millors hiperparàmetres trobats per validació creuada sobre l'avaluació del grau histològic 3, són: [lambda] -->", best_hyperparams_ridgeregression_grade_3$best_lambda ,"\n")
 
 
-# Funció genèrica per obtenir la rellevància dels diferents gens o conjunts de gens a partir de cada grau histològic diferent i
-# el conjunt d'hiperparàmetres òptims trobats amb la corss validation grid Search
-# La variable objectiu ve marcada pel paràmetre indicador de grau i el retorn es el conjunt de resultats d'importàncies 
-# per al grau concret.
-ridgeregression_importance_by_grade <- function(X, histological_grade, best_lambda) {
+# Funció que realitza tot el procés de:
+# - Divisió del conjunt de dades en entrenament (2/3 parts) i test (1/3)
+# - Entrenament del conjunt de dades de train amb els hiperparàmetres òptims trobats
+# - Prediccions i assignacions dels resultats a partir del conjunt de dades de test
+# - Obtenció de la matriu de confusió com a indicador de rendiment
+# - Càlcul de les importàncies concretes per a cada una de es variables objectiu indicadores de grau histològic
+# El retorn es el conjunt de resultats dels coeficients d'importància, les mètriques ROC i la matriu de confusió 
+ridgeregression_process_metrics_importances_by_grade <- function(X, histological_grade, best_lambda) {
   
-  cat("Cerca d'importàncies ",histological_grade, " \n")
+  #Divisió del conjunt de dades en subconjunts de train (entrenament, 70% per conveni 2/3) i test (proves, 30% 1/3)
+  set.seed(123)  # Reproducibilitat
   
+  cat("--Generació de subconjunts de dades de train i test en" , histological_grade ,"--\n")
+  
+  datasets_results_ridge <- train_test_datasets_generation(X,dataset,histological_grade)
+  
+  # Capturem resultats
+  X_train <- as.matrix(datasets_results_ridge$X_train)
+  X_test <- as.matrix(datasets_results_ridge$X_test)
+  y_train <- datasets_results_ridge$y_train
+  y_test <- datasets_results_ridge$y_test
+  
+  cat("Entrenament per a ",histological_grade, " \n")
   # Entrenament del model final amb els millors hiperparàmetres
   # Volem saber la importància de cada gen respecte cada tipus de variable objectiu, per tant, no caldrà subdidir entre train i test
   # ja que no es volen realitzar prediccions de classificació. Tot el conjunt 'X' serà d'entrenament
   ridge_model <- glmnet(
+    X_train, y_train,
+    alpha = 0,
+    lambda = best_lambda,
+    family = "binomial"
+  )
+  
+  
+  # Prediccions sobre el conjunt de test
+  cat("Prediccions sobre test en ",histological_grade, " \n")
+  y_pred_prob <- predict(ridge_model, s = best_lambda, newx = X_test, type = "response")
+  y_pred_prob <- as.vector(y_pred_prob)  # Assegurem que sigui un vector numèric
+  # Convertim les prediccions en resultats binaris fent ús del 0.5 com a llindar
+  # Resultats superiors a 0.5 s'etiqueten com a 1 i inferiors, com a 0
+  y_pred_labels <- ifelse(y_pred_prob > 0.5, 1, 0)
+  
+  # Matriu de confusió
+  confusion_matrix <- table(Predicted = y_pred_labels, Actual = y_test)
+  
+  # Càlcul de les mètriques ROC
+  roc_curve <- roc(y_test, y_pred_prob)
+  
+  cat("Cerca d'importàncies ",histological_grade, " \n")
+  
+  # Obtenir i retornar la importància de les característiques però amb tot el conjunt de dades sencer, sense la divisió entre
+  # entrenament i test ja que ens interessa és tenir-ho el més genèric possible
+  
+  # Entrenament del model amb els hiperparàmetres òptims i el conjunt de dades sencer
+  ridge_model_final <- glmnet(
     X, dataset[[histological_grade]],
     alpha = 0,
     lambda = best_lambda,
@@ -109,12 +144,11 @@ ridgeregression_importance_by_grade <- function(X, histological_grade, best_lamb
   )
   
   # Obtenir les importàncies de les característiques a partir dels coeficients
-  coeficients <- coef(ridge_model, s = best_lambda)
+  coeficients <- coef(ridge_model_final, s = best_lambda)
   feature_importance <- data.frame(
     Feature = rownames(as.matrix(coeficients)),
     Coef = as.vector(as.matrix(coeficients))
   )
-  
   
   # Ordenem els coeficients per valor absolut (importància).
   # Els valors negatius representen importàncies positivies de "protecció" i els positius de "risc" de patiment.
@@ -123,11 +157,13 @@ ridgeregression_importance_by_grade <- function(X, histological_grade, best_lamb
     mutate(AbsCoef = abs(Coef)) %>%       # Calcular el valor absolut dels coeficients.
     arrange(desc(AbsCoef))               # Ordenar pel valor absolut de major a menor.
   
-  
-  
-  return(feature_importance)
-  
-  
+  # retorn de les importàncies, la matriu de confusió i l'àrea sota la corba
+  return(list(
+    importance = feature_importance,
+    confusion_matrix = confusion_matrix,
+    roc = roc_curve
+  ))
+
 }
 
 # Establim el nombre de mostres que es volen mostrar en el rànking dels millors i els pitjors
@@ -136,29 +172,92 @@ top_num = 10
 # A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
 # per a cada classe (grau histològic: 1, 2 i 3)
 # importàncies GRAU HISTOLÒGIC 1
-importance_ridgeregression_grade_1 <- ridgeregression_importance_by_grade(X,"is_grade_1",best_hyperparams_ridgeregression_grade_1$best_lambda)
+results_ridgeregression_grade_1 <- ridgeregression_process_metrics_importances_by_grade(X,"is_grade_1",best_hyperparams_ridgeregression_grade_1$best_lambda)
 # importàncies GRAU HISTOLÒGIC 2
-importance_ridgeregression_grade_2 <- ridgeregression_importance_by_grade(X,"is_grade_2",best_hyperparams_ridgeregression_grade_2$best_lambda)
+results_ridgeregression_grade_2 <- ridgeregression_process_metrics_importances_by_grade(X,"is_grade_2",best_hyperparams_ridgeregression_grade_2$best_lambda)
 # importàncies GRAU HISTOLÒGIC 3
-importance_ridgeregression_grade_3 <- ridgeregression_importance_by_grade(X,"is_grade_3",best_hyperparams_ridgeregression_grade_3$best_lambda)
+results_ridgeregression_grade_3 <- ridgeregression_process_metrics_importances_by_grade(X,"is_grade_3",best_hyperparams_ridgeregression_grade_3$best_lambda)
+
+
+# Captura importàncies
+importancies_ridge_grade1 <- results_ridgeregression_grade_1$importance
+importancies_ridge_grade2 <- results_ridgeregression_grade_2$importance
+importancies_ridge_grade3 <- results_ridgeregression_grade_3$importance
+
+# Captura matriu confusió
+matriu_confusio_ridge_grade1 <- results_ridgeregression_grade_1$confusion_matrix
+matriu_confusio_ridge_grade2 <- results_ridgeregression_grade_2$confusion_matrix
+matriu_confusio_ridge_grade3 <- results_ridgeregression_grade_3$confusion_matrix
+
+# Captura AUC
+auc_ridge_grade1 <- results_ridgeregression_grade_1$roc$auc
+auc_ridge_grade2 <- results_ridgeregression_grade_2$roc$auc
+auc_ridge_grade3 <- results_ridgeregression_grade_3$roc$auc
 
 
 # Mostra del TOP 10 en el rànking de millors resultats d'importància de gens o conjunts de gens per a cada grau histològic
 # TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 1
 cat("Top ", top_num,  ": GRAU HISTOLÒGIC 1 --> Gens/s més importants:\n")
-print(head(importance_ridgeregression_grade_1, top_num))
+print(head(importancies_ridge_grade1, top_num))
 # TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 2
 cat("Top ", top_num,  ": GRAU HISTOLÒGIC 2 --> Gens/s més importants:\n")
-print(head(importance_ridgeregression_grade_2, top_num))
+print(head(importancies_ridge_grade2, top_num))
 # TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 3
 cat("Top ", top_num,  ": GRAU HISTOLÒGIC 3 --> Gens/s més importants:\n")
-print(head(importance_ridgeregression_grade_3, top_num))
+print(head(importancies_ridge_grade3, top_num))
 
+
+# Mostra les matrius de confusió en cada grau histològic
+cat("MATRIU DE CONFUSIÓ GRAU HISTOLÒGIC 1 : \n")
+print(matriu_confusio_ridge_grade1)
+# TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 2
+cat("MATRIU DE CONFUSIÓ GRAU HISTOLÒGIC 2 :\n")
+print(matriu_confusio_ridge_grade2)
+# TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 3
+cat("MATRIU DE CONFUSIÓ GRAU HISTOLÒGIC 3 :\n")
+print(matriu_confusio_ridge_grade3)
+
+
+# Totals i percentatges respecte al total global
+# Casos reals positius en cada un dels graus histològics
+total_grade1 <- sum(matriu_confusio_ridge_grade1[, 2])
+total_grade2 <- sum(matriu_confusio_ridge_grade2[, 2])
+total_grade3 <- sum(matriu_confusio_ridge_grade3[, 2])
+
+# Total global de casos de la clase "1"
+total_class1_train <- total_grade1 + total_grade2 + total_grade3
+
+cat("Total elements de Grau Histològic 1 en train: ", total_grade1, "(", round((total_grade1 / total_class1_train) * 100, 2), "% del total)\n")
+cat("Total elements de Grau Histològic 2 en train: ", total_grade2, "(", round((total_grade2 / total_class1_train) * 100, 2), "% del total)\n")
+cat("Total elements de Grau Histològic 3 en train: ", total_grade3, "(", round((total_grade3 / total_class1_train) * 100, 2), "% del total)\n")
+
+# Càlcul de mètriques de rendiment a partir de la matriu de confusió i la fòrmula genèrica 'calcula_metrics'
+metrics_cm_grade1 <- calcula_metrics(matriu_confusio_ridge_grade1)
+metrics_cm_grade2 <- calcula_metrics(matriu_confusio_ridge_grade2)
+metrics_cm_grade3 <- calcula_metrics(matriu_confusio_ridge_grade3)
+
+# Mostra resultats
+cat("Mètriques de Matriu de Confusió per a Grau Histològic 1:\n")
+cat(paste(names(metrics_cm_grade1), "=", unlist(metrics_cm_grade1), collapse = ", "), "\n")
+cat("Mètriques de Matriu de Confusió per a Grau Histològic 2:\n")
+cat(paste(names(metrics_cm_grade2), "=", unlist(metrics_cm_grade2), collapse = ", "), "\n")
+cat("Mètriques de Matriu de Confusió per a Grau Histològic 3:\n")
+cat(paste(names(metrics_cm_grade3), "=", unlist(metrics_cm_grade3), collapse = ", "), "\n")
+
+# Mostra les mètriques AUC per a cada grau histològic
+cat("AUC en GRAU HISTOLÒGIC 1 : \n")
+print(auc_ridge_grade1)
+# TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 2
+cat("AUC en GRAU HISTOLÒGIC 2 :\n")
+print(auc_ridge_grade2)
+# TOP top_num millors importàncies genètiques GRAU HISTOLÒGIC 3
+cat("AUC en GRAU HISTOLÒGIC 3 :\n")
+print(auc_ridge_grade3)
 
 # Visualització de resultants emprant gràfiques verticals amb 'ggplot'
 
 # Afegim una columna per categoritzar els coeficients com a positius o negatius
-importance_ridgeregression_grade_1 <- importance_ridgeregression_grade_1 %>%
+importance_ridgeregression_grade_1 <- importancies_ridge_grade1 %>%
   mutate(Signe = ifelse(Coef > 0, "Positiu (Risc)", "Negatiu (Protecció)"))
 
 # Gràfic amb diferenciació de colors per signe del coeficient.
@@ -179,7 +278,7 @@ ggsave(filename = paste0(path_images,"Grau_Histologic_1_RidgeRegression.png"), p
 
 
 # Afegim una columna per categoritzar els coeficients com a positius o negatius
-importance_ridgeregression_grade_2 <- importance_ridgeregression_grade_2 %>%
+importance_ridgeregression_grade_2 <- importancies_ridge_grade2 %>%
   mutate(Signe = ifelse(Coef > 0, "Positiu (Risc)", "Negatiu (Protecció)"))
 
 title2 <- paste0("Ridge Regression - Top ", top_num, " Importància Genètica (Grau Histològic 2)")
@@ -190,7 +289,7 @@ ggsave(filename = paste0(path_images,"Grau_Histologic_2_RidgeRegression.png"), p
 
 
 # Afegim una columna per categoritzar els coeficients com a positius o negatius
-importance_ridgeregression_grade_3 <- importance_ridgeregression_grade_3 %>%
+importance_ridgeregression_grade_3 <- importancies_ridge_grade3 %>%
   mutate(Signe = ifelse(Coef > 0, "Positiu (Risc)", "Negatiu (Protecció)"))
 
 title3 <- paste0("Ridge Regression - Top ", top_num, " Importància Genètica (Grau Histològic 3)")
@@ -198,3 +297,33 @@ title3 <- paste0("Ridge Regression - Top ", top_num, " Importància Genètica (G
 plot3 <- create_horitzontal_barchart_with_sign_plot(importance_ridgeregression_grade_3, "Feature", "Coef", "Signe", color1, color2, title3, subtitle, top_num, xlabel, ylabel)
 # Guardem el gràfic generat
 ggsave(filename = paste0(path_images,"Grau_Histologic_3_RidgeRegression.png"), plot = plot3, width = 15, height = 10)
+
+
+# Generar las corbes ROC
+
+# Generació datasets amb especifictats i sensibilitats a partir de roc()
+roc_data_grade1 <- data.frame(
+  Specificity = results_ridgeregression_grade_1$roc$specificities,
+  Sensitivity = results_ridgeregression_grade_1$roc$sensitivities
+)
+
+roc_data_grade2 <- data.frame(
+  Specificity = results_ridgeregression_grade_2$roc$specificities,
+  Sensitivity = results_ridgeregression_grade_2$roc$sensitivities
+)
+
+roc_data_grade3 <- data.frame(
+  Specificity = results_ridgeregression_grade_3$roc$specificities,
+  Sensitivity = results_ridgeregression_grade_3$roc$sensitivities
+)
+
+# mostra diagrames corbes ROC
+plot_roc1 <- plot_roc(roc_data_grade1, "Corba ROC - Grau Histològic 1 ")
+# Guardem el gràfic generat
+ggsave(filename = paste0(path_images,"Grau_Histologic_1_RidgeRegression_ROC.png"), plot = plot_roc1, width = 15, height = 10)
+plot_roc2 <- plot_roc(roc_data_grade2, "Corba ROC - Grau Histològic 2 ")
+# Guardem el gràfic generat
+ggsave(filename = paste0(path_images,"Grau_Histologic_2_RidgeRegression_ROC.png"), plot = plot_roc2, width = 15, height = 10)
+plot_roc3 <- plot_roc(roc_data_grade3, "Corba ROC - Grau Histològic 3 ")
+# Guardem el gràfic generat
+ggsave(filename = paste0(path_images,"Grau_Histologic_3_RidgeRegression_ROC.png"), plot = plot_roc3, width = 15, height = 10)
