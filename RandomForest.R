@@ -13,15 +13,6 @@ path_images <- "data/output/images/RandomForest/"
 
 cat("-------RANDOM FOREST ALGORITHM----------\n")
 
-# Variable objectiu--> grau histològic (categòrica ordinal)
-# Variables independents --> conjunt de 10.600 columnes referents a gens (valors continus normalitzats entre 0 i 1)
-
-# Crear variables binàries per a cada grau histològic
-dataset$is_grade_1 <- ifelse(dataset$HISTOLOGICAL_GRADE == 1, 1, 0)
-dataset$is_grade_2 <- ifelse(dataset$HISTOLOGICAL_GRADE == 2, 1, 0)
-dataset$is_grade_3 <- ifelse(dataset$HISTOLOGICAL_GRADE == 3, 1, 0)
-
-
 # Funció per a trobar els hiperpàrmatres òptims (aquells que maximitzen els millors valors del Random Forest) emprant la validació creuada
 # i la graella d'opcions de param_grid
 hyperparams_search_randomForest <- function(X, y, param_grid) {
@@ -87,11 +78,6 @@ hyperparams_search_randomForest <- function(X, y, param_grid) {
   
 }
 
-# Capturem les variables independents que són les corresponents als gens o conjunts de gens. Aquestes van de la columna 7
-# a la N (10647) però n'hem d'excloure les 3 últimes variables temporals afegides en el pas anterior d'indicadors de grau específic.
-# Ho convertim en matriu per a que sigui compatible amb l'algorisme.
-X <- as.matrix(dataset[, 7:(ncol(dataset) - 3)])
-
 # Degut a les limitacions i les restriccions de l'algorisme RandomForest amb els noms de les columnes que actuen com a característiques
 # assignem un mapa de variables i canviem els noms per X0... Xn (on 'n' es el nombre total de característiques)
 column_map <- setNames(paste0("X", seq_along(colnames(X)) - 1), colnames(X))
@@ -143,17 +129,56 @@ rf_importance_by_grade <- function(X,histological_grade, best_params) {
   return(importance)
 }
 
+
+# A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
+# per a cada classe (grau histològic: 1, 2 i 3). Ho executarem 20 vegades per assgurar-nos l'exactitud del càlcul
+# i el resultat final serà la mitjana aritmètica de l'acumulació de resultats de les importàncies de cada iteració
+
+# iteracions
+num_times <- 20
+
+# acumulats
+acc_importance_rf_g1 <- NULL
+acc_importance_rf_g2 <- NULL
+acc_importance_rf_g3 <- NULL
+
+# Iterar y acumular resultats
+for (i in 1:num_times) {
+  
+  cat("---Iteració: ", i, "---\n")
+  # A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
+  # per a cada classe (grau histològic: 1, 2 i 3)
+  # importàncies GRAU HISTOLÒGIC 1
+  importance_rf_grade_1 <- rf_importance_by_grade(X,"is_grade_1", best_hyperparams_rf_grade_1$best_params)
+  # importàncies GRAU HISTOLÒGIC 2
+  importance_rf_grade_2 <- rf_importance_by_grade(X,"is_grade_2", best_hyperparams_rf_grade_2$best_params)
+  # importàncies GRAU HISTOLÒGIC 3
+  importance_rf_grade_3 <- rf_importance_by_grade(X,"is_grade_3", best_hyperparams_rf_grade_3$best_params)
+  
+  # Acumulació
+  if (is.null(acc_importance_rf_g1) && is.null(acc_importance_rf_g2) && is.null(acc_importance_rf_g3)) {
+    # assignació la primera vegada
+    acc_importance_rf_g1 <- importance_rf_grade_1
+    acc_importance_rf_g2 <- importance_rf_grade_2
+    acc_importance_rf_g3 <- importance_rf_grade_3
+  } else {
+    # suma resultats quan no es la primera iteració
+    acc_importance_rf_g1 <- acc_importance_rf_g1 + importance_rf_grade_1
+    acc_importance_rf_g2 <- acc_importance_rf_g2 + importance_rf_grade_2
+    acc_importance_rf_g3 <- acc_importance_lightgbm_g3 + importance_rf_grade_3
+  }
+  
+}
+
+# Resultats finals a partir de la mitjana aritmètica dels acumulats en les iteracions anteriors.
+# Excloem la columna 'Features' en l'operació
+importance_rf_grade_1 <- importance_rf_grade_1 %>% mutate(across(where(is.numeric), ~ . / num_times))
+importance_rf_grade_2 <- importance_rf_grade_2 %>% mutate(across(where(is.numeric), ~ . / num_times))
+importance_rf_grade_3 <- importance_rf_grade_3 %>% mutate(across(where(is.numeric), ~ . / num_times))
+
 # Establim el nombre de mostres que es volen mostrar en el rànking dels millors
 top_num = 10
 
-# A partir de la funció definida anteriorment, obtenim les importàncies de les característiques (gens) 
-# per a cada classe (grau histològic: 1, 2 i 3)
-# importàncies GRAU HISTOLÒGIC 1
-importance_rf_grade_1 <- rf_importance_by_grade(X,"is_grade_1", best_hyperparams_rf_grade_1$best_params)
-# importàncies GRAU HISTOLÒGIC 2
-importance_rf_grade_2 <- rf_importance_by_grade(X,"is_grade_2", best_hyperparams_rf_grade_2$best_params)
-# importàncies GRAU HISTOLÒGIC 3
-importance_rf_grade_3 <- rf_importance_by_grade(X,"is_grade_3", best_hyperparams_rf_grade_3$best_params)
 
 # Invertir el mapeig inicial del gens / característiques: de noms generats a noms originals
 reversed_map <- setNames(names(column_map), column_map)

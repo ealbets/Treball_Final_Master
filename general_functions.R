@@ -1,6 +1,8 @@
 ## FUNCIONS GENÈRIQUES
+if (!require("caret")) install.packages("caret")
 
 library(ggplot2)
+library(caret)
 
 ## Funció de càrrega, processament i unió amb les dades gèniques de la plataforma
 # 1. Carrega i llegeix el contingut de la taula de la ruta especificada
@@ -123,6 +125,45 @@ normalize_matrix <- function(matrix_list) {
   return(matrix_norm)
 }
 
+# Funció genèrica que retorna la divisió del conjunt de dades d'entrenament i de test: x_train, x_test, y_train, y_test
+# Paràmetres: dataset, conjunt de dades
+#             histological_grade, nom de la columna objectiu
+# La divisió es realitza de forma arbitrària coma 2/3 per a train (70%) i 1/3 per a test (30%)
+train_test_datasets_generation <- function(X, dataset, histological_grade) {
+  #Divisió del conjunt de dades en subconjunts de train (entrenament, 70% per conveni 2/3) i test (proves, 30% 1/3)
+  set.seed(123)  # Reproducibilitat
+
+  # variable objectiu
+  target <- dataset[[histological_grade]]
+  
+  # Generació dataset de train al 70% aleatori i amb una divisió estratificada: crea índexs per a train
+  # per tal de poder tenir una proporció equilibrada d'ambdues classes (0,1) en els dos subconjunts de dades train i test.
+  # La funció de 'caret' --> createDataPartition s'encarrega d'aquest punt
+  train_indexs <- createDataPartition(y = target, p = 0.7, list = FALSE)
+  
+  # dades de train
+  X_train <- X[train_indexs, ]
+  y_train <- target[train_indexs]
+  
+  # dades de test
+  X_test <- X[-train_indexs, ]
+  y_test <- target[-train_indexs]
+  
+  cat("Dimensions del conjunt de dades d'entrenament: ", dim(X_train), " rows x cols \n")
+  cat("Dimensions del conjunt de dades de test: ", dim(X_test), " rows x cols \n")
+  
+  cat("Distribució de classes en el conjunt de train:\n")
+  print(table(y_train))
+  
+  cat("Distribució de classes en el conjunt de test:\n")
+  print(table(y_test))
+
+  return (list(X_train=X_train,
+        X_test=X_test,
+        y_train=y_train,
+        y_test=y_test))
+
+}
 
 # Funció genèrica que crea un diagrama de barres horitzonals a partir de la llibreria ggplot2 per visualitzar
 # el rànking de resultats de les importàncies dels gens en cada una de les tècniques de machine-learning diferents
@@ -221,3 +262,53 @@ create_horitzontal_barchart_with_sign_plot <- function(data, X, Y, z, color1, co
   
   return(plot)
 }
+  
+# Funció genèrica que a partir d'una matriu de confusió com a paràmetre, retorna els valors de:
+# - Sensibilitat
+# - Especificitat
+# - Exactitud
+# - Precisió
+calcula_metrics <- function(confusion_matrix) {
+    
+    # capturem
+    # veritables positius: encerts positius
+    TP <- confusion_matrix[2, 2]
+    # falsos negatius: errors en etiquetar valors negatius que són positius
+    FN <- confusion_matrix[2, 1]
+    # falsos positius: errors en etiquetar valors positius que són negatius
+    FP <- confusion_matrix[1, 2]
+    # veritables negatius: encerts negatius
+    TN <- confusion_matrix[1, 1]
+    
+    # fòrmules sensibilitat, especificitat, exactitiud i precisió
+    sensibilitat <- TP / (TP + FN)
+    especificitat <- TN / (TN + FP)
+    exactitud <- (TP + TN) / sum(confusion_matrix)
+    precisio <- TP / (TP + FP)
+    
+    return(list(
+      Sensibilitat = sensibilitat,
+      Especificitat = especificitat,
+      Exactitud = exactitud,
+      Precisio = precisio
+    ))
+}
+
+# Graficar corbes ROC per grau histològic
+# -title (títol del gràfic)
+# -data (conjunt de dades en format data frame que conté les especificitats i sensibilitats extretes per roc)
+plot_roc <- function(data, title) {
+  ggplot(data, aes(x = Specificity, y = Sensitivity)) +
+    geom_line(color = "blue", size = 1) +
+    geom_abline(linetype = "dashed", color = "gray") +
+    labs(title = title, x = "1 - Especificitat", y = "Sensibilitat") +
+  theme_minimal() +
+    theme(
+      panel.background = element_rect(fill = "white", color = "white"), # Fons del gràfic
+      plot.background = element_rect(fill = "white", color = "white"),  # Fons del quadre del gràfic
+      panel.grid.major = element_line(color = "grey80"),                # Línies de la quadrícula
+      panel.grid.minor = element_blank(),                               # Línies de quadrícula menors
+      legend.position = "top"                                           # Llegenda a la part superior
+    )
+}
+  

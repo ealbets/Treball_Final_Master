@@ -80,17 +80,17 @@ cat("La taula resum s'ha guardat a:", output_path, "\n")
 source("preparacio_dades_ml.R")
 ##-- TÈNIQUES BASADES EN ARBRES DE DECISIÓ I GRADIENT --##
 ##-- TÈCNICA MACHINE-LEARNING SUPERVISAT DE REGRESSIÓ III: RANDOM FOREST --##
-source("RandomForest.R")
+##source("RandomForest.R")
 ##-- TÈCNICA MACHINE-LEARNING SUPERVISAT DE REGRESSIÓ I: XGBOOST --##
 source("XGBoost.R")
 ##-- TÈCNICA MACHINE-LEARNING SUPERVISAT DE REGRESSIÓ II: LIGHTGBM --##
 source("LightGBM.R")
 ##--TÈCNIQUES BASADES EN REGULARITZACIÓ --##
 ##-- TÈCNICA MACHINE-LEARNING SUPERVISAT DE REGRESSIÓ IV: RIDGE REGRESSION L2 --##
-source("RidgeRegression_L2.R")
+##source("RidgeRegression_L2.R")
 ##-- TÈCNICA MACHINE-LEARNING SUPERVISAT DE REGRESSIÓ V: LASSO REGRESSION L1 --##
-source("LassoRegression_L1.R")
+##source("LassoRegression_L1.R")
 ##-- TÈCNICA MACHINE-LEARNING SUPERVISAT DE REGRESSIÓ VI: ELASTIC NET --##
-source("ElasticNet.R")
+##source("ElasticNet.R")
 
 sink()
