@@ -124,8 +124,8 @@ lassoregression_process_metrics_importances_by_grade <- function(X, histological
   # Resultats superiors a 0.5 s'etiqueten com a 1 i inferiors, com a 0
   y_pred_labels <- ifelse(y_pred_prob > 0.5, 1, 0)
   
-  # Matriu de confusió
-  confusion_matrix <- table(Predicted = y_pred_labels, Actual = y_test)
+  # Generació matriu de confusió
+  confusion_matrix <- generate_confusion_matrix(y_pred_labels, y_test, classes = c(0, 1))
   
   # Càlcul de les mètriques ROC
   roc_curve <- roc(y_test, y_pred_prob)

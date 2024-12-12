@@ -35,7 +35,7 @@ taula_resum <- data.frame(
   "CARACTERÍSTICA" = c("TIPUS CONJUNT DE DADES", "TIPUS D'ALGORISME", "VARIABLE OBJECTIU", "TIPUS VARIABLE OBJECTIU", 
                        "VARIABLES INDEPENDENTS", "TIPUS VARIABLES INDEPENDENTS"),
   "DESCRIPCIÓ" = c("Supervisat", "Regressió", "HISTOLOGICAL_GRADE", 
-                   "Quantitativa categòrica ordinal de 3 classes (1,2 i 3)", 
+                   "Quantitativa categòrica ordinal de 3 classes (1,2 i 3) convertida en 3 variables objectius diferents (pertinença a cada un dels graus) de tipus binari", 
                    "Tot el conjunt de columnes que representen gens o conjunts de gens", 
                    "Quantitatives contínues amb valors normalitzats compresos entre 0 i 1")
 )
@@ -87,10 +87,10 @@ source("XGBoost.R")
 source("LightGBM.R")
 ##--TÈCNIQUES BASADES EN REGULARITZACIÓ --##
 ##-- TÈCNICA MACHINE-LEARNING SUPERVISAT DE REGRESSIÓ IV: RIDGE REGRESSION L2 --##
-##source("RidgeRegression_L2.R")
+source("RidgeRegression.R")
 ##-- TÈCNICA MACHINE-LEARNING SUPERVISAT DE REGRESSIÓ V: LASSO REGRESSION L1 --##
-##source("LassoRegression_L1.R")
+source("LassoRegression.R")
 ##-- TÈCNICA MACHINE-LEARNING SUPERVISAT DE REGRESSIÓ VI: ELASTIC NET --##
-##source("ElasticNet.R")
+source("ElasticNet.R")
 
 sink()

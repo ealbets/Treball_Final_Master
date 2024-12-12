@@ -162,8 +162,8 @@ lightgbm_train_predict_importances_by_grade <- function(X, histological_grade, b
   # Resultats superiors a 0.5 s'etiqueten com a 1 i inferiors, com a 0
   y_pred_labels <- ifelse(y_pred > 0.5, 1, 0)
   
-  # Càlcul de la matriu de confusió segons els resultats obtinguts en la predicció i la realitat
-  confusion_matrix <- table(Predicted = y_pred_labels, Actual = y_test)
+  # Generació matriu de confusió segons els resultats obtinguts en la predicció i la realitat
+  confusion_matrix <- generate_confusion_matrix(y_pred_labels, y_test, classes = c(0, 1))
   # obtenció de la mètrica de rendiment de l'àrea sota la corba
   roc <- roc(y_test, y_pred)
   

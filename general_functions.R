@@ -311,4 +311,27 @@ plot_roc <- function(data, title) {
       legend.position = "top"                                           # Llegenda a la part superior
     )
 }
+
+
+# Creació de la matriu de confusió amb inicialització per omplir valors buits
+# Funció auxiliar per corregir el tema de no generar valors quan no hi ha prediccions per a una classe concreta
+# Paràmetres: 
+# - y_pred_labels (valors etiquetats resultants de les prediccions)
+# - y_test (etiquetes reals originals del conjunt de dades de test)
+# - classes (etiquetes possibles dins les categories, en aquest cas sempre serà binària de 0 / 1)
+generate_confusion_matrix <- function(y_pred_labels, y_test, classes = c(0, 1)) {
+  
+  # Inicialitzar una matriu de confusió buida amb totes les combinacions possibles
+  conf_matrix <- matrix(0, nrow = length(classes), ncol = length(classes),
+                         dimnames = list(Predicted = classes, Actual = classes))
+  
+  # Generar la matriu de confusió amb les dades disponibles
+  temp_conf_matrix <- table(Predicted = factor(y_pred_labels, levels = classes),
+                      Actual = factor(y_test, levels = classes))
+  
+  # Omplir la matriu inicial amb els valors del `table()`
+  conf_matrix[rownames(temp_conf_matrix), colnames(temp_conf_matrix)] <- temp_conf_matrix
+  
+  return(conf_matrix)
+}
   
