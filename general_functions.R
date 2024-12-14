@@ -281,7 +281,14 @@ calcula_metrics <- function(confusion_matrix) {
     TN <- confusion_matrix[1, 1]
     
     # fòrmules sensibilitat, especificitat, exactitiud i precisió
-    sensibilitat <- TP / (TP + FN)
+    
+    # controlant indeterminació
+    if (TP == 0 && FN == 0) {
+      sensibilitat <- 0
+    } else {
+      sensibilitat <- TP / (TP + FN)
+    }
+
     especificitat <- TN / (TN + FP)
     exactitud <- (TP + TN) / sum(confusion_matrix)
     precisio <- TP / (TP + FP)
