@@ -69,7 +69,7 @@ hyperparams_en_search <- function(X, y, alpha, lambdes) {
 
 # Definim les possibilitats d'hiperparàmetres per a cercar els òptims
 # seqüència de valors alpha i valors lambda
-alpha <- seq(0.1, 0.9, by = 0.15)
+alpha <- seq(0.1, 0.95, by = 0.05)
 lambdes <- 10^seq(-4, 2, length.out = 50)  # 50 valors entre 0.0001 i 100
 
 
