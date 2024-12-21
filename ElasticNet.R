@@ -3,6 +3,7 @@ if (!require("glmnet")) install.packages("glmnet")
 if (!require("dplyr")) install.packages("dplyr")
 if (!require("ggplot2")) install.packages("ggplot2")
 if (!require("progress")) install.packages("progress")
+if (!require("pROC")) install.packages("pROC")
 
 library(glmnet)
 library(dplyr)
