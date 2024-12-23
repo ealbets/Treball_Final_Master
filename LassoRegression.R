@@ -326,10 +326,10 @@ roc_data_grade3 <- data.frame(
 # mostra diagrames corbes ROC
 plot_roc1 <- plot_roc(roc_data_grade1, "Corba ROC - Grau Histològic 1 ")
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_1_RidgeRegression_ROC.png"), plot = plot_roc1, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_1_LassoRegression_ROC.png"), plot = plot_roc1, width = 15, height = 10)
 plot_roc2 <- plot_roc(roc_data_grade2, "Corba ROC - Grau Histològic 2 ")
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_2_RidgeRegression_ROC.png"), plot = plot_roc2, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_2_LassoRegression_ROC.png"), plot = plot_roc2, width = 15, height = 10)
 plot_roc3 <- plot_roc(roc_data_grade3, "Corba ROC - Grau Histològic 3 ")
 # Guardem el gràfic generat
-ggsave(filename = paste0(path_images,"Grau_Histologic_3_RidgeRegression_ROC.png"), plot = plot_roc3, width = 15, height = 10)
+ggsave(filename = paste0(path_images,"Grau_Histologic_3_LassoRegression_ROC.png"), plot = plot_roc3, width = 15, height = 10)
